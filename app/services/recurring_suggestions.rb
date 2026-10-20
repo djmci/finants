@@ -56,11 +56,7 @@ class RecurringSuggestions
     Transaction.excluding_transfers.where.not(payee: [ nil, "" ])
                .joins(:account).where.not(accounts: { kind: "loan" })
                .includes(:account)
-               .group_by { |t| [ t.account_id, detection_key(t.payee) ] }
-  end
-
-  def detection_key(payee)
-    PayeeRule.normalize(payee).gsub(/\b\w*\d\w*\b/, "").gsub(/\s+/, " ").strip
+               .group_by { |t| [ t.account_id, PayeeRule.detection_key(t.payee) ] }
   end
 
   # Longest common prefix of the group's normalized payees, cut at a

@@ -31,15 +31,16 @@ class RecurringRule < ApplicationRecord
     kind == "expense" ? -amount_cents.abs : amount_cents.abs
   end
 
-  # Matches a real transaction: same account, rule payee as substring
-  # of the txn payee (normalised, like PayeeRule), and same amount —
-  # except settle rules, whose payment amount varies by cycle.
+  # Matches a real transaction: same account, rule's ref-stripped payee
+  # key inside the txn's (bank text carries per-txn refs), and same
+  # amount — except settle rules, whose payment varies by cycle.
   def self.match_for(account:, payee:, amount_cents:)
-    norm = PayeeRule.normalize(payee)
-    return nil if norm.blank?
+    key = PayeeRule.detection_key(payee)
+    return nil if key.blank?
     active.where(account: account).select do |r|
-      (r.settle? || r.amount_cents.abs == amount_cents.abs) &&
-        norm.include?(PayeeRule.normalize(r.payee))
+      rkey = PayeeRule.detection_key(r.payee)
+      rkey.present? && key.include?(rkey) &&
+        (r.settle? || r.amount_cents.abs == amount_cents.abs)
     end.max_by { |r| r.payee.length }
   end
 

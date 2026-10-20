@@ -92,10 +92,11 @@ class Forecast
     rules_by_account = @rules.select(&:active?).group_by(&:account_id)
     totals = Hash.new(0)
     combos.each do |(account_id, payee, cents), count|
-      norm = PayeeRule.normalize(payee)
+      key = PayeeRule.detection_key(payee)
       matched = rules_by_account.fetch(account_id, []).any? do |r|
-        (r.settle? || r.amount_cents.abs == cents.abs) &&
-          norm.include?(PayeeRule.normalize(r.payee))
+        rkey = PayeeRule.detection_key(r.payee)
+        rkey.present? && key.include?(rkey) &&
+          (r.settle? || r.amount_cents.abs == cents.abs)
       end
       totals[account_id] += cents * count unless matched
     end
