@@ -8,7 +8,7 @@ admin.update!(name: "Dan", role: "admin", password: "password", password_confirm
   "income" => %w[Salary Interest Dividends Other Tax\ refund],
   "expense" => %w[Communication Council\ rates Eating\ Out Energy Entertainment
                   Giving Groceries Health Household Insurance Internet
-                  Music\ lesson Other Pet\ food Reimbursement Rent/Mortgage School Sport
+                  Music\ lesson Other Pet\ care Reimbursement Rent/Mortgage School Sport
                   Subscriptions Transfer Transport Travel Union Utilities]
 }.each do |kind, names|
   names.each do |name|
