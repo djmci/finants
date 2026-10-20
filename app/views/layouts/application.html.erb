@@ -19,7 +19,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen" data-controller="keyboard">
+  <body class="min-h-screen" data-controller="keyboard scroll-restore">
     <% if authenticated? %>
       <div class="drawer lg:drawer-open <%= "sidebar-collapsed" if cookies[:sc] == "1" %>" data-controller="sidebar">
         <input id="app-drawer" type="checkbox" class="drawer-toggle" />
