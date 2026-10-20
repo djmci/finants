@@ -14,14 +14,13 @@
     <% @health.each do |name, h| %>
       <div class="stat">
         <div class="stat-title"><%= name %></div>
-        <div class="stat-value text-2xl <%= h[:min].negative? ? "text-error" : "text-success" %>"><%= signed_money h[:min] %></div>
+        <div class="stat-value text-2xl <%= h[:end_cents].negative? ? "text-error" : "" %>"><%= signed_money h[:end_cents] %></div>
         <div class="stat-desc">
           <% if h[:min].negative? %>
-            goes negative <%= h[:min_date].strftime("%-d %b %Y") %>
+            <span class="text-error">dips to <%= signed_money h[:min] %> on <%= h[:min_date].strftime("%-d %b") %></span>
           <% else %>
-            stays positive · lowest <%= h[:min_date].strftime("%-d %b") %>
+            lowest <%= signed_money h[:min] %> on <%= h[:min_date].strftime("%-d %b") %>
           <% end %>
-          · ends <%= signed_money h[:end_cents] %>
         </div>
       </div>
     <% end %>
