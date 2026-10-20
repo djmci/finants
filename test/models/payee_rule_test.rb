@@ -31,4 +31,19 @@ class PayeeRuleTest < ActiveSupport::TestCase
     assert_equal reim, PayeeRule.for("OSKO PAYMENT FROM J BLOGGS", amount_cents: 10_000)
     assert_nil PayeeRule.for("OSKO PAYMENT FROM J BLOGGS", amount_cents: -10_000)
   end
+
+
+  test "auto rule applies to uncategorised txns on save" do
+    txn = Transaction.create!(account: accounts(:everyday), posted_on: Date.current,
+                              payee: "KMART BURWOOD", amount_cents: -100)
+    PayeeRule.create!(pattern: "KMART", category: categories(:food), auto: true)
+    assert_equal categories(:food), txn.reload.category
+  end
+
+  test "suggest-only rule does not apply on save" do
+    txn = Transaction.create!(account: accounts(:everyday), posted_on: Date.current,
+                              payee: "BIGW", amount_cents: -100)
+    PayeeRule.create!(pattern: "BIGW", category: categories(:food), auto: false)
+    assert_nil txn.reload.category
+  end
 end

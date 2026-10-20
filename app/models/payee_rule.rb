@@ -8,6 +8,7 @@ class PayeeRule < ApplicationRecord
   validates :direction, inclusion: { in: DIRECTIONS }, allow_nil: true
 
   before_validation { self.pattern = self.class.normalize(pattern) }
+  after_save :apply_to_uncategorised, if: -> { auto? && saved_changes.slice("pattern", "category_id", "round_amount", "max_amount_cents", "direction", "auto").present? }
 
   def self.normalize(payee)
     # NBSP and friends show up in real bank exports — fold to ASCII space.
@@ -31,6 +32,10 @@ class PayeeRule < ApplicationRecord
   # auto_only: rules allowed to categorise silently at import —
   # non-auto rules only power the suggestion pills on History.
   def self.for(payee, amount_cents: nil, auto_only: false)
+    best_rule_for(payee, amount_cents:, auto_only:)&.category
+  end
+
+  def self.best_rule_for(payee, amount_cents: nil, auto_only: false)
     key = detection_key(payee)
     raw = normalize(payee)
     return nil if key.blank? && raw.blank?
@@ -50,7 +55,7 @@ class PayeeRule < ApplicationRecord
       matches = matches.select { |r| r.round_amount.nil? && r.max_amount_cents.nil? && r.direction.nil? }
     end
     # More conditions = more specific; then longest pattern wins.
-    matches.max_by { |r| [ r.conditions, r.pattern.length ] }&.category
+    matches.max_by { |r| [ r.conditions, r.pattern.length ] }
   end
 
   def self.learn(payee, category, amount_cents = nil)
@@ -62,5 +67,14 @@ class PayeeRule < ApplicationRecord
 
   def conditions
     [ round_amount, max_amount_cents, direction ].count(&:present?)
+  end
+
+  # Tags every uncategorised txn this rule wins on — runs after save so
+  # "auto" rules take effect immediately, not just on the next import.
+  # update_column skips callbacks, so no learn-feedback loop.
+  def apply_to_uncategorised
+    Transaction.uncategorised.find_each do |t|
+      t.update_column(:category_id, category_id) if self.class.best_rule_for(t.payee, amount_cents: t.amount_cents) == self
+    end
   end
 end
