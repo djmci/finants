@@ -86,6 +86,22 @@ class HealthReport
       # nets the category down to its true cost.
       buckets[cat&.display_name || "Uncategorised"] -= t.amount_cents
     end
+    # Card spend the charge txns don't explain: real settle payments
+    # minus tracked charges on the card. Until statements are imported
+    # this is the whole payment; after, it's the unexplained residual.
+    @rules.select(&:settle?).each do |rule|
+      key = PayeeRule.detection_key(rule.payee)
+      window = (@today - DRIFT_DAYS.days)..@today
+      paid = Transaction.where(account: rule.account, transfer_pair_id: nil)
+                        .where(posted_on: window).where("amount_cents < 0")
+                        .select { |t| PayeeRule.detection_key(t.payee).include?(key) }
+                        .sum { |t| t.amount_cents.abs }
+      charged = Transaction.where(account: rule.to_account, transfer_pair_id: nil)
+                           .where(posted_on: window).where("amount_cents < 0")
+                           .sum(:amount_cents).abs
+      residual = paid - charged
+      buckets["Card settlement (unallocated)"] += residual if residual.positive?
+    end
     buckets.delete_if { |_, cents| cents <= 0 }
     months = DRIFT_DAYS / 30.0
     buckets.map { |name, cents| [ name, cents / months ] }.sort_by { |_, c| -c }
