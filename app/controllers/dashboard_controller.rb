@@ -24,12 +24,11 @@ class DashboardController < ApplicationController
 
   private
 
-  # Bottom line for a horizon: lowest projected point in the window,
-  # its date, and where the window ends.
+  # Projected balance at the horizon date, plus delta from today.
   def checkpoint(points, upto)
     window = points.select { |d, _| d <= upto }
-    date, cents = window.min_by(&:last)
-    { min: cents, min_date: date, end_cents: window.last.last }
+    { date: window.last.first, end_cents: window.last.last,
+      delta: window.last.last - points.first.last }
   end
 
   # Actual combined daily balance for the trailing HISTORY_DAYS.
