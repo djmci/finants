@@ -43,9 +43,9 @@
               <td class="text-right whitespace-nowrap w-20">
                 <div class="flex items-center justify-end">
                   <% if rule.active? %>
-                    <%= button_to archive_recurring_rule_path(rule), class: "btn btn-ghost btn-circle btn-sm", title: "Pause" do %><%= icon "archive", class: "size-4" %><% end %>
+                    <%= button_to archive_recurring_rule_path(rule), class: "btn btn-ghost btn-circle btn-sm", title: "Pause" do %><%= icon "pause", class: "size-4" %><% end %>
                   <% else %>
-                    <%= button_to unarchive_recurring_rule_path(rule), class: "btn btn-ghost btn-circle btn-sm", title: "Resume" do %><%= icon "unarchive", class: "size-4" %><% end %>
+                    <%= button_to unarchive_recurring_rule_path(rule), class: "btn btn-ghost btn-circle btn-sm", title: "Resume" do %><%= icon "play", class: "size-4" %><% end %>
                   <% end %>
                   <%= link_to recurring_rules_path(edit: rule.id, archived: params[:archived]), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
                     <%= icon "edit", class: "size-4" %>
