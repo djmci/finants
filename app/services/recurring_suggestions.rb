@@ -50,8 +50,11 @@ class RecurringSuggestions
   # Groups by a ref-stripped key: bank descriptions carry per-txn refs
   # (ZAL104384, APP#…, timestamps, account numbers) that defeat exact
   # payee grouping — drop every token containing a digit.
+  # Loan accounts are skipped: their legs are mirrors of the paying
+  # account's (repayments) or debt accrual (interest) — not cashflow.
   def transaction_groups
     Transaction.excluding_transfers.where.not(payee: [ nil, "" ])
+               .joins(:account).where.not(accounts: { kind: "loan" })
                .includes(:account)
                .group_by { |t| [ t.account_id, detection_key(t.payee) ] }
   end

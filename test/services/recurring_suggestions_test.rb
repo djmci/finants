@@ -52,4 +52,12 @@ class RecurringSuggestionsTest < ActiveSupport::TestCase
          dates: [ Date.new(2026, 8, 15), Date.new(2026, 9, 15) ])
     assert_nil RecurringSuggestions.call.find { |x| x[:payee].include?("RARE") }
   end
+
+  test "loan account legs are not suggested" do
+    loan = Account.create!(name: "DetLoan", kind: "loan", opening_balance_cents: -1000000)
+    [ Date.new(2026, 7, 15), Date.new(2026, 8, 15), Date.new(2026, 9, 15) ].each do |d|
+      Transaction.create!(account: loan, posted_on: d, payee: "INTEREST DEBIT X1", amount_cents: -5000)
+    end
+    assert_nil RecurringSuggestions.call.find { |x| x[:account_id] == loan.id }
+  end
 end
