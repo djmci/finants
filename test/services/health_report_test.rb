@@ -41,4 +41,14 @@ class HealthReportTest < ActiveSupport::TestCase
     assert row, "expected spend under #{cat.display_name}"
     assert_equal 30_000 / 3, row.last.round  # 90d window → monthlyised
   end
+
+  test "category spend nets reimbursements tagged with the spend's category" do
+    account = accounts(:everyday)
+    food = categories(:food)
+    baseline = HealthReport.new.category_spend.find { |name, _| name == food.display_name }.last
+    Transaction.create!(account:, posted_on: Date.current, payee: "DINNER", amount_cents: -10_000, category: food)
+    Transaction.create!(account:, posted_on: Date.current, payee: "MATE PAYBACK", amount_cents: 4_000, category: food)
+    row = HealthReport.new.category_spend.find { |name, _| name == food.display_name }
+    assert_in_delta baseline + 6_000 / 3.0, row.last, 1
+  end
 end

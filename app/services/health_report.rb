@@ -72,15 +72,17 @@ class HealthReport
   def category_spend
     txns = Transaction.where(transfer_pair_id: nil)
                       .where(posted_on: (@today - DRIFT_DAYS.days)..@today)
-                      .where("amount_cents < 0")
                       .includes(:category)
     buckets = Hash.new(0)
     txns.each do |t|
       rule = RecurringRule.match_for(account: t.account, payee: t.payee, amount_cents: t.amount_cents)
       next if rule&.settle?
       cat = t.category || rule&.category
-      buckets[cat&.display_name || "Uncategorised"] += t.amount_cents.abs
+      # Signed sum: a reimbursement tagged with the spend's category
+      # nets the category down to its true cost.
+      buckets[cat&.display_name || "Uncategorised"] -= t.amount_cents
     end
+    buckets.delete_if { |_, cents| cents <= 0 }
     months = DRIFT_DAYS / 30.0
     buckets.map { |name, cents| [ name, cents / months ] }.sort_by { |_, c| -c }
   end
