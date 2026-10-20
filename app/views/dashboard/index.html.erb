@@ -14,10 +14,49 @@
     <% @health.each do |name, h| %>
       <div class="stat">
         <div class="stat-title"><%= name %> — <%= h[:date].strftime("%-d %b %Y") %></div>
-        <div class="stat-value text-2xl <%= h[:end_cents].negative? ? "text-error" : "" %>"><%= signed_money h[:end_cents] %></div>
+        <div class="stat-value text-2xl <%= { critical: "text-error", warn: "text-warning", ok: "" }[h[:severity]] %>"><%= signed_money h[:end_cents] %></div>
         <div class="stat-desc"><%= signed_money h[:delta] %> from today</div>
       </div>
     <% end %>
+  </div>
+
+  <div class="card card-border bg-base-100">
+    <div class="card-body p-0">
+      <div class="flex items-center justify-between border-b border-base-300 px-4 py-2.5">
+        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Alerts</h2>
+        <details class="dropdown dropdown-end">
+          <summary class="btn btn-ghost btn-xs">Thresholds</summary>
+          <div class="dropdown-content card card-border bg-base-100 z-10 w-64 p-3 shadow">
+            <%= form_with url: settings_path, method: :patch, class: "space-y-2" do %>
+              <div class="fieldset">
+                <label class="label text-xs">Warn below ($)</label>
+                <%= number_field_tag :alert_warn, @alert_warn, step: "0.01", class: "input input-sm w-full" %>
+              </div>
+              <div class="fieldset">
+                <label class="label text-xs">Critical below ($)</label>
+                <%= number_field_tag :alert_critical, @alert_critical, step: "0.01", class: "input input-sm w-full" %>
+              </div>
+              <%= submit_tag "Save", class: "btn btn-primary btn-sm w-full" %>
+            <% end %>
+          </div>
+        </details>
+      </div>
+      <table class="table table-sm">
+        <tbody>
+          <% @breaches.each do |b| %>
+            <tr>
+              <td class="w-24"><span class="badge badge-soft badge-xs <%= b.severity == :critical ? "badge-error" : "badge-warning" %>"><%= b.severity %></span></td>
+              <td>Cash below <%= money Setting.alert_warn_cents %>
+                from <strong><%= b.from.strftime("%-d %b %Y") %></strong><%= " → #{b.through.strftime("%-d %b %Y")}" if b.through != b.from %></td>
+              <td class="text-right text-base-content/70">lowest <strong class="text-error"><%= signed_money b.min %></strong> on <%= b.min_date.strftime("%-d %b") %></td>
+            </tr>
+          <% end %>
+          <% if @breaches.empty? %>
+            <tr><td class="text-center text-base-content/50 py-6">No breaches projected over the next 12 months.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <div class="card card-border bg-base-100">

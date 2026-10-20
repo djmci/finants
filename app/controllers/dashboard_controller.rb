@@ -20,6 +20,12 @@ class DashboardController < ApplicationController
     @health = HORIZONS.to_h { |name, span| [ name, checkpoint(full, Date.current + span) ] }
     @floor = @projection.min_by(&:last)
     @net_flow = @projection.size > 1 ? (@projection.last.last - @projection.first.last) / @months : 0
+
+    monitor = CashflowMonitor.new(warn: Setting.alert_warn_cents, critical: Setting.alert_critical_cents)
+    @breaches = monitor.breaches(full)
+    @health.each_value { |h| h[:severity] = monitor.severity_of(full.select { |d, _| d <= h[:date] }) }
+    @alert_warn = Setting.alert_warn_cents / 100.0
+    @alert_critical = Setting.alert_critical_cents / 100.0
   end
 
   private

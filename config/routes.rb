@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   end
   resources :transactions, only: [ :index, :create, :update, :destroy ]
   resource :transfer, only: :create
+  resource :settings, only: :update
   resources :imports, except: [ :edit, :update ] do
     post :commit, on: :member
   end
