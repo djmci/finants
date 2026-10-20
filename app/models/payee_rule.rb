@@ -1,7 +1,11 @@
 class PayeeRule < ApplicationRecord
   belongs_to :category
 
-  validates :pattern, presence: true, uniqueness: { scope: %i[round_amount max_amount_cents] }
+  DIRECTIONS = %w[in out].freeze
+
+  validates :pattern, presence: true,
+            uniqueness: { scope: %i[round_amount max_amount_cents direction] }
+  validates :direction, inclusion: { in: DIRECTIONS }, allow_nil: true
 
   before_validation { self.pattern = self.class.normalize(pattern) }
 
@@ -21,8 +25,9 @@ class PayeeRule < ApplicationRecord
   # detection keys (per-txn refs would never repeat); legacy full-payee
   # patterns still match against the raw normalized payee.
   # Conditions narrow a rule: `round_amount` matches .00 (or non-.00)
-  # amounts only; `max_amount_cents` caps the magnitude, spends only —
-  # e.g. sub-$20 kid top-ups are eating out, larger transfers aren't.
+  # amounts only; `max_amount_cents` caps the magnitude, spends only;
+  # `direction` requires in/out — e.g. incoming Osko is a payback,
+  # outgoing Osko isn't.
   def self.for(payee, amount_cents: nil)
     key = detection_key(payee)
     raw = normalize(payee)
@@ -30,18 +35,19 @@ class PayeeRule < ApplicationRecord
     matches = includes(:category).select { |r| key.include?(r.pattern) || raw.include?(r.pattern) }
     if amount_cents
       round = (amount_cents % 100).zero?
-      # Conditions gate a rule: flag mismatch or magnitude over cap
-      # means the rule doesn't apply to this transaction at all.
+      direction = amount_cents.negative? ? "out" : "in"
+      # Conditions gate a rule: flag mismatch, magnitude over cap, or
+      # wrong direction means the rule doesn't apply at all.
       matches = matches.select do |r|
         (r.round_amount.nil? || r.round_amount == round) &&
-          (r.max_amount_cents.nil? || (amount_cents.negative? && amount_cents.abs <= r.max_amount_cents))
+          (r.max_amount_cents.nil? || (amount_cents.negative? && amount_cents.abs <= r.max_amount_cents)) &&
+          (r.direction.nil? || r.direction == direction)
       end
     else
-      matches = matches.select { |r| r.round_amount.nil? && r.max_amount_cents.nil? }
+      matches = matches.select { |r| r.round_amount.nil? && r.max_amount_cents.nil? && r.direction.nil? }
     end
     # More conditions = more specific; then longest pattern wins.
-    matches.max_by { |r| [ (r.round_amount.nil? ? 0 : 1) + (r.max_amount_cents ? 1 : 0), r.pattern.length ] }
-           &.category
+    matches.max_by { |r| [ r.conditions, r.pattern.length ] }&.category
   end
 
   def self.learn(payee, category, amount_cents = nil)
@@ -49,5 +55,9 @@ class PayeeRule < ApplicationRecord
     round = amount_cents && (amount_cents % 100).zero?
     find_or_initialize_by(pattern: detection_key(payee).presence || normalize(payee),
                           round_amount: round).update!(category:)
+  end
+
+  def conditions
+    [ round_amount, max_amount_cents, direction ].count(&:present?)
   end
 end

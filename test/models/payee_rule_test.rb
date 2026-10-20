@@ -23,4 +23,12 @@ class PayeeRuleTest < ActiveSupport::TestCase
     assert_equal comm, PayeeRule.for("AGL RETAIL ENERG", amount_cents: -5000)
     assert_equal utilities, PayeeRule.for("AGL RETAIL ENERG", amount_cents: -8206)
   end
+
+
+  test "for respects direction conditions" do
+    reim = Category.create!(name: "Reimb", kind: "expense")
+    PayeeRule.create!(pattern: "OSKO PAYMENT FROM", direction: "in", category: reim)
+    assert_equal reim, PayeeRule.for("OSKO PAYMENT FROM J BLOGGS", amount_cents: 10_000)
+    assert_nil PayeeRule.for("OSKO PAYMENT FROM J BLOGGS", amount_cents: -10_000)
+  end
 end

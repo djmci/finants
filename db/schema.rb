@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_083758) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_21_084447) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -60,8 +60,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_083758) do
     t.datetime "updated_at", null: false
     t.boolean "round_amount"
     t.integer "max_amount_cents"
+    t.string "direction"
     t.index ["category_id"], name: "index_payee_rules_on_category_id"
-    t.index ["pattern", "round_amount", "max_amount_cents"], name: "index_payee_rules_on_pattern_and_conditions", unique: true
+    t.index ["pattern", "round_amount", "max_amount_cents", "direction"], name: "index_payee_rules_on_pattern_and_conditions", unique: true
   end
 
   create_table "recurring_rules", force: :cascade do |t|
