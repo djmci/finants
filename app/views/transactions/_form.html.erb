@@ -24,6 +24,7 @@
   <div class="fieldset">
     <%= f.label :category_id, "Category", class: "label" %>
     <%= f.collection_select :category_id, categories, :id, :display_name, { include_blank: "Uncategorised" }, class: "select w-full" %>
+    <%= render "categories/new_link", select_id: "transaction_category_id" %>
   </div>
   <% if once_rules.any? %>
     <div class="fieldset">

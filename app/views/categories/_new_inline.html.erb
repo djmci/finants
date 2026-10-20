@@ -1,0 +1,16 @@
+<%= turbo_frame_tag "new_category_frame" do %>
+  <%= form_with model: category, url: categories_path(format: :turbo_stream), class: "flex items-end gap-2 mt-1" do |f| %>
+    <%= hidden_field_tag :select_id, select_id %>
+    <div class="fieldset grow">
+      <%= f.text_field :name, placeholder: "Category name", class: "input input-sm w-full", autofocus: true %>
+    </div>
+    <div class="fieldset">
+      <%= f.select :kind, [ [ "Expense", "expense" ], [ "Income", "income" ] ], {}, class: "select select-sm" %>
+    </div>
+    <%= f.submit "Add", class: "btn btn-primary btn-sm" %>
+    <%= link_to "✕", new_category_path(cancel: 1, select_id:), class: "btn btn-ghost btn-sm btn-square" %>
+  <% end %>
+  <% category.errors.full_messages.each do |msg| %>
+    <p class="text-error text-xs mt-1"><%= msg %></p>
+  <% end %>
+<% end %>

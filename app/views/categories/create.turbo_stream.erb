@@ -1,0 +1,6 @@
+<%= turbo_stream.append @select_id do %>
+  <option value="<%= @category.id %>" selected><%= @category.display_name %></option>
+<% end %>
+<%= turbo_stream.replace "new_category_frame" do %>
+  <%= render "categories/new_link", select_id: @select_id %>
+<% end %>

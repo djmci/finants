@@ -25,6 +25,7 @@
   <div class="fieldset">
     <%= f.label :category_id, "Category", class: "label" %>
     <%= f.collection_select :category_id, categories, :id, :display_name, { include_blank: "Uncategorised" }, class: "select w-full" %>
+    <%= render "categories/new_link", select_id: "recurring_rule_category_id" %>
   </div>
   <div class="grid grid-cols-2 gap-3">
     <div class="fieldset">

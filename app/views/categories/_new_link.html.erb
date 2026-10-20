@@ -1,0 +1,3 @@
+<%= turbo_frame_tag "new_category_frame" do %>
+  <%= link_to "+ New category", new_category_path(select_id: local_assigns[:select_id]), class: "link link-hover text-xs" %>
+<% end %>

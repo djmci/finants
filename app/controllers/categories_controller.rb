@@ -10,12 +10,34 @@ class CategoriesController < ApplicationController
     @parents = Category.active.top_level.order(:kind, :name)
   end
 
+  # Mini form for inline creation inside a form drawer — or the
+  # plain link when cancelling.
+  def new
+    if params[:cancel]
+      render partial: "new_link", locals: { select_id: params[:select_id] }
+    else
+      @category = Category.new(kind: params[:kind] || "expense")
+      render partial: "new_inline", locals: { category: @category, select_id: params[:select_id] }
+    end
+  end
+
   def create
     category = Category.new(category_params)
     if category.save
-      redirect_back_to_page categories_path, notice: "Category added."
+      respond_to do |format|
+        format.turbo_stream { @category = category; @select_id = params[:select_id] }
+        format.html { redirect_back_to_page categories_path, notice: "Category added." }
+      end
     else
-      redirect_back_to_page categories_path(new: 1), alert: category.errors.full_messages.to_sentence
+      respond_to do |format|
+        format.turbo_stream do
+          @category = category
+          render turbo_stream: turbo_stream.replace("new_category_frame",
+            partial: "new_inline", locals: { category:, select_id: params[:select_id] }),
+            status: :unprocessable_entity
+        end
+        format.html { redirect_back_to_page categories_path(new: 1), alert: category.errors.full_messages.to_sentence }
+      end
     end
   end
 

@@ -7,7 +7,7 @@ Rails.application.routes.draw do
       post :unarchive
     end
   end
-  resources :categories, except: [ :new, :edit, :show, :destroy ] do
+  resources :categories, except: [ :edit, :show, :destroy ] do
     member do
       post :archive
       post :unarchive
