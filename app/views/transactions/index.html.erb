@@ -1,4 +1,4 @@
-<% content_for :title, "Transactions — Finants" %>
+<% content_for :title, "History — Finants" %>
 <% mobile_nav "transactions", transactions_path %>
 <% content_for :mobile_action do %>
   <label for="txn-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> Add</label>
@@ -7,13 +7,11 @@
 <% editing = @edit_txn.present? %>
 <div class="drawer drawer-end">
   <input id="txn-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= editing || params[:new].present? %>" />
-  <input id="transfer-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= params[:transfer].present? %>" />
-  <input id="filter-drawer" type="checkbox" class="drawer-toggle" />
   <% active_filters = params.values_at(:account, :owner, :q, :uncategorised).count(&:present?) %>
 
   <div class="drawer-content space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <h1 class="font-bold text-xl">Transactions<% if @uncategorised_count.positive? %> <span class="badge badge-warning badge-soft badge-sm"><%= @uncategorised_count %> uncategorised</span><% end %></h1>
+      <h1 class="font-bold text-xl">History<% if @uncategorised_count.positive? %> <span class="badge badge-warning badge-soft badge-sm"><%= @uncategorised_count %> uncategorised</span><% end %></h1>
       <div class="flex items-center gap-2">
         <label for="filter-drawer" class="btn btn-ghost btn-sm"><%= icon "filter" %> Filters<% if active_filters.positive? %> <span class="badge badge-primary badge-xs"><%= active_filters %></span><% end %></label>
         <label for="transfer-drawer" class="btn btn-ghost btn-sm"><%= icon "transfer" %> Transfer</label>
@@ -73,7 +71,24 @@
       <%= render "form", txn: @edit_txn || Transaction.new(posted_on: Date.current), accounts: @accounts, categories: @categories, once_rules: @once_rules %>
     </div>
   </div>
+</div>
 
+<div class="drawer drawer-end">
+  <input id="transfer-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= params[:transfer].present? %>" />
+  <div class="drawer-side z-50">
+    <label for="transfer-drawer" aria-label="close drawer" class="drawer-overlay"></label>
+    <div class="bg-base-100 min-h-full w-full sm:w-96 p-5 border-l border-base-300 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg">Transfer between accounts</h2>
+        <label for="transfer-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
+      </div>
+      <%= render "transfer_form", accounts: @accounts %>
+    </div>
+  </div>
+</div>
+
+<div class="drawer drawer-end">
+  <input id="filter-drawer" type="checkbox" class="drawer-toggle" />
   <div class="drawer-side z-50">
     <label for="filter-drawer" aria-label="close drawer" class="drawer-overlay"></label>
     <div class="bg-base-100 min-h-full w-full sm:w-80 p-5 border-l border-base-300 overflow-y-auto">
@@ -103,19 +118,6 @@
           <%= link_to "Clear", transactions_path, class: "btn btn-ghost btn-sm" %>
         </div>
       <% end %>
-    </div>
-  </div>
-</div>
-
-<div class="drawer drawer-end">
-  <div class="drawer-side z-50">
-    <label for="transfer-drawer" aria-label="close drawer" class="drawer-overlay"></label>
-    <div class="bg-base-100 min-h-full w-full sm:w-96 p-5 border-l border-base-300 overflow-y-auto">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="font-bold text-lg">Transfer between accounts</h2>
-        <label for="transfer-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
-      </div>
-      <%= render "transfer_form", accounts: @accounts %>
     </div>
   </div>
 </div>

@@ -1,4 +1,4 @@
-<% content_for :title, "Recurring — Finants" %>
+<% content_for :title, "Forecast — Finants" %>
 <% mobile_nav "repeat", recurring_rules_path %>
 <% content_for :mobile_action do %>
   <label for="rule-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> Add</label>
@@ -10,7 +10,7 @@
 
   <div class="drawer-content space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <h1 class="font-bold text-xl">Recurring</h1>
+      <h1 class="font-bold text-xl">Forecast</h1>
       <% if editing %>
         <%= link_to recurring_rules_path(new: 1), class: "btn btn-primary btn-sm" do %><%= icon "plus" %> New rule<% end %>
       <% else %>
