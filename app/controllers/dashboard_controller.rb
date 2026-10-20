@@ -24,12 +24,12 @@ class DashboardController < ApplicationController
   def forecast_scope
     case params[:account]
     when "all"
-      [@accounts, "All accounts"]
+      [@accounts, "Net worth"]
     when nil, "", "cash"
-      [@accounts.select { |a| LIQUID_KINDS.include?(a.kind) }, "Cash"]
+      [@accounts.select { |a| LIQUID_KINDS.include?(a.kind) }, "Cashflow"]
     else
       account = @accounts.detect { |a| a.id.to_s == params[:account] }
-      account ? [[ account ], account.name] : [@accounts.select { |a| LIQUID_KINDS.include?(a.kind) }, "Cash"]
+      account ? [[ account ], account.name] : [@accounts.select { |a| LIQUID_KINDS.include?(a.kind) }, "Cashflow"]
     end
   end
 

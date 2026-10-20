@@ -43,14 +43,14 @@
           <%= form_with url: root_path, method: :get, local: true, class: "flex items-center gap-1" do %>
             <%= hidden_field_tag :months, @months %>
             <%= select_tag :account, options_for_select(
-                  [ [ "Cash (liquid accounts)", "cash" ], [ "All accounts (net worth)", "all" ] ] + @accounts.map { |a| [ a.name, a.id ] },
+                  [ [ "Cashflow", "cash" ], [ "Net worth (all accounts)", "all" ] ] + @accounts.map { |a| [ a.name, a.id ] },
                   params[:account].presence || "cash"),
                 onchange: "this.form.requestSubmit()", class: "select select-sm w-52" %>
           <% end %>
           <div class="join">
             <% [ 3, 6, 12 ].each do |m| %>
               <%= link_to "#{m}mo", root_path(months: m, account: params[:account]),
-                  class: "join-item btn btn-sm #{@months == m ? "btn-primary" : ""}" %>
+                  class: "join-item btn btn-sm #{@months == m ? "btn-brand" : ""}" %>
             <% end %>
           </div>
         </div>

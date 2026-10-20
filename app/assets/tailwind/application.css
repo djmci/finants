@@ -20,3 +20,7 @@
 }
 .sidebar-collapsed-only { display: none; }
 .icon-expand { display: none; }
+
+/* Red Ant brand red — used for the "Ant" wordmark and primary actions. */
+.btn-brand { background-color: #FF2A00; border-color: #FF2A00; color: #fff; }
+.btn-brand:hover { background-color: #d92400; border-color: #d92400; }
