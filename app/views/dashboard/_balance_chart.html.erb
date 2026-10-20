@@ -41,9 +41,10 @@
         class="stroke-base-content/30" stroke-dasharray="2 3" stroke-width="1"/>
   <text x="<%= x.(today) + 4 %>" y="<%= pad_t + 8 %>" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50">TODAY</text>
   <% month_step = span_d > 400 ? 3 : 1 %>
+  <% edge_margin = span_d * 0.09 %>
   <% m = (min_d + 1).beginning_of_month %>
   <% while m <= max_d %>
-    <% if m > min_d %>
+    <% if m > min_d + edge_margin && m < max_d - edge_margin %>
       <line x1="<%= x.(m).round(1) %>" x2="<%= x.(m).round(1) %>" y1="<%= h - pad_b %>" y2="<%= h - pad_b + 4 %>" class="stroke-base-content/40" stroke-width="1"/>
       <text x="<%= x.(m).round(1) %>" y="<%= h - 6 %>" text-anchor="middle" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50"><%= m.strftime(m.year == today.year ? "%b" : "%b %y").upcase %></text>
     <% end %>
