@@ -67,25 +67,21 @@ class HealthReport
 
   # Actual spend by category over the drift window — txns matched to a
   # rule count under the rule's category even if the row is untagged.
+  # Settle payments are excluded: paying the card isn't spend — the
+  # card's charges already count under their real categories.
   def category_spend
-    rules_by_account = @rules.group_by(&:account_id)
     txns = Transaction.where(transfer_pair_id: nil)
                       .where(posted_on: (@today - DRIFT_DAYS.days)..@today)
                       .where("amount_cents < 0")
                       .includes(:category)
     buckets = Hash.new(0)
     txns.each do |t|
-      cat = t.category || matched_rule_category(t, rules_by_account)
+      rule = RecurringRule.match_for(account: t.account, payee: t.payee, amount_cents: t.amount_cents)
+      next if rule&.settle?
+      cat = t.category || rule&.category
       buckets[cat&.display_name || "Uncategorised"] += t.amount_cents.abs
     end
     months = DRIFT_DAYS / 30.0
     buckets.map { |name, cents| [ name, cents / months ] }.sort_by { |_, c| -c }
-  end
-
-  private
-
-  def matched_rule_category(txn, rules_by_account)
-    RecurringRule.match_for(account: txn.account, payee: txn.payee, amount_cents: txn.amount_cents)
-                 &.category
   end
 end
