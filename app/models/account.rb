@@ -1,7 +1,7 @@
 class Account < ApplicationRecord
   include DollarField
 
-  KINDS = %w[everyday savings credit cash].freeze
+  KINDS = %w[everyday savings credit cash loan].freeze
 
   dollar_field :opening_balance
 

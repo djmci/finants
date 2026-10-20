@@ -1,4 +1,25 @@
 module ApplicationHelper
+  def nav_class(path)
+    active = path == "/" ? current_page?(path) : request.path.start_with?(path.to_s)
+    active ? "menu-active" : ""
+  end
+
+  # Sets the mobile navbar section icon; links back to the section's
+  # index page when a path is given.
+  def mobile_nav(icon, path = nil)
+    content_for(:mobile_icon) { icon }
+    content_for(:mobile_icon_path) { path } if path
+  end
+
+  def user_avatar(user, size: 10)
+    width = { 8 => "w-8 text-xs", 10 => "w-10 text-sm", 12 => "w-12 text-base" }.fetch(size, "w-10 text-sm")
+    tag.div(class: "avatar avatar-placeholder") do
+      tag.div(class: "bg-neutral text-neutral-content #{width.split.first} rounded-full") do
+        tag.span(user&.initials || "?", class: width.split.last)
+      end
+    end
+  end
+
   # Red Ant wordmark: "Ant" in brand red.
   def finants_wordmark(class: "font-bold text-lg")
     tag.span(class: binding.local_variable_get(:class)) do
@@ -34,6 +55,12 @@ module ApplicationHelper
     "unarchive"  => '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h2"/><path d="M20 8v11a2 2 0 0 1-2 2h-2"/><path d="m9 15 3-3 3 3"/><path d="M12 12v9"/>',
     "search"     => '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
     "chevron-left" => '<path d="m15 18-6-6 6-6"/>',
+    "chevrons-left" => '<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>',
+    "chevrons-right" => '<path d="m6 17 5-5 5-5"/><path d="m13 17 5-5 5-5"/>',
+    "menu"       => '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
+    "moon"       => '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    "keyboard"   => '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/>',
+    "user"       => '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
     "logout"     => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>'
   }.freeze
 

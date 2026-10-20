@@ -23,8 +23,15 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
   model). Not multi-tenant.
 - **Money**: integer cents, signed (+ in / − out), `amount_cents`. AUD
   default.
-- **Accounts**: `kind` enum (everyday/savings/credit/cash),
+- **Accounts**: `kind` enum (everyday/savings/credit/cash/loan),
   `opening_balance_cents`, `active`, nullable `owner` FK → users.
+  Loans/mortgages are just accounts with a negative (owed) balance.
+  Repayment = transfer into the loan (correctly excluded from spend:
+  principal is a net-worth transfer). Interest = negative txn inside
+  the loan account categorised "Mortgage Interest" → lands in spend
+  reports. Both halves get recurring rules. Later: rate tracking,
+  auto interest estimate (rate × balance / 365), offset awareness,
+  amortisation-vs-actual drift in the health report.
   owner=null means joint. Balance = opening + Σ transactions. Views default
   to pooled household; mine/yours/joint and per-account filters.
 - **Transfers**: two linked transactions via `transfer_pair_id`; excluded
@@ -82,11 +89,17 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
 - Fixtures + model/request tests (transfer pairing, balance math,
   category nesting, direction sign, auth redirects) — 40 runs green.
 
-## Phase 2 — UI shell [ ]
+## Phase 2 — UI shell [x]
 
-- daisyUI layout cribbed from anthill: sidebar, flash toasts, light+dark
-  themes, mobile nav.
-- Dashboard placeholder, keyboard shortcuts Stimulus controller.
+- daisyUI layout cribbed from anthill: collapsible sidebar (`sc` cookie),
+  mobile navbar + `mobile_nav`/`:mobile_action` slots, flash toasts,
+  footer credit.
+- Themes emerald/forest via `data-theme` + `theme` cookie; `m` key or
+  profile-menu toggle (client-side cookie, no endpoint needed).
+- Keyboard shortcuts: `g d/t/a/c` nav, `n` new transaction, `m` theme,
+  `?` help modal, esc closes drawers.
+- Dashboard: account cards + uncategorised count (forecast lands in
+  phase 5).
 
 ## Phase 3 — CSV import [ ]
 

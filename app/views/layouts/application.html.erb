@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html<% if cookies[:theme].in?(%w[emerald forest]) %> data-theme="<%= cookies[:theme] %>"<% end %>>
   <head>
     <title><%= content_for(:title) || "Finants" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -19,44 +19,112 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="min-h-screen bg-base-200 text-base-content flex flex-col">
+  <body class="min-h-screen" data-controller="keyboard">
     <% if authenticated? %>
-      <div class="navbar bg-base-100 border-b border-base-300">
-        <div class="flex-1 flex items-center gap-4">
-          <%= link_to root_path, class: "flex items-center gap-2" do %>
-            <%= ant_icon size: 28 %>
-            <%= finants_wordmark class: "font-bold text-xl tracking-tight" %>
-          <% end %>
-          <nav class="hidden sm:flex items-center gap-1 ml-4">
-            <%= link_to "Transactions", transactions_path, class: "btn btn-ghost btn-sm" %>
-            <%= link_to "Accounts", accounts_path, class: "btn btn-ghost btn-sm" %>
-            <%= link_to "Categories", categories_path, class: "btn btn-ghost btn-sm" %>
-          </nav>
+      <div class="drawer lg:drawer-open <%= "sidebar-collapsed" if cookies[:sc] == "1" %>" data-controller="sidebar">
+        <input id="app-drawer" type="checkbox" class="drawer-toggle" />
+        <div class="drawer-content flex flex-col min-h-screen">
+          <div class="navbar bg-base-100 border-b border-base-300 lg:hidden sticky top-0 z-30 pt-[env(safe-area-inset-top)]">
+            <div class="navbar-start gap-0.5">
+              <label for="app-drawer" class="btn btn-ghost btn-square drawer-button" aria-label="Open menu">
+                <%= icon "menu", class: "size-5" %>
+              </label>
+              <% if content_for?(:mobile_icon) %>
+                <% if content_for?(:mobile_icon_path) %>
+                  <%= link_to content_for(:mobile_icon_path), class: "btn btn-ghost btn-square btn-sm", aria: { label: "Back to section" } do %>
+                    <%= icon(content_for(:mobile_icon).to_s, class: "size-5 text-base-content/50") %>
+                  <% end %>
+                <% else %>
+                  <%= icon(content_for(:mobile_icon).to_s, class: "size-5 text-base-content/50") %>
+                <% end %>
+              <% end %>
+            </div>
+            <div class="navbar-center">
+              <%= link_to root_path, class: "flex items-center gap-1.5" do %>
+                <%= ant_icon size: 20 %>
+                <%= finants_wordmark class: "font-bold text-lg tracking-tight" %>
+              <% end %>
+            </div>
+            <div class="navbar-end gap-1.5">
+              <%= yield :mobile_action %>
+            </div>
+          </div>
+          <main class="flex-1 p-4 sm:p-6 lg:p-8 lg:pt-5 max-w-6xl w-full mx-auto">
+            <%= yield %>
+          </main>
+          <footer class="footer footer-center border-t border-base-300 bg-base-100 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-sm text-base-content/60">
+            <aside class="flex items-center gap-1.5">
+              <%= ant_icon size: 14 %>
+              <p>
+                Finants — a
+                <a href="https://redant.com.au" target="_blank" rel="noreferrer" class="link link-hover font-medium text-base-content/80">Red Ant</a>
+                experiment,
+                <span class="whitespace-nowrap">built with AI.</span>
+              </p>
+            </aside>
+          </footer>
         </div>
-        <div class="flex-none">
-          <%= link_to session_path, data: { turbo_method: :delete }, class: "btn btn-ghost btn-sm" do %>
-            Sign out
-          <% end %>
+        <div class="drawer-side z-40">
+          <label for="app-drawer" aria-label="close sidebar" class="drawer-overlay"></label>
+          <div class="bg-base-200 text-base-content min-h-full w-60 flex flex-col sidebar-panel">
+            <div class="p-4 pb-2 lg:pt-5 sidebar-logo">
+              <%= link_to root_path, class: "flex items-center gap-2 lg:h-8" do %>
+                <%= ant_icon size: 28 %>
+                <%= finants_wordmark class: "font-bold text-xl lg:text-2xl tracking-tight sidebar-text" %>
+              <% end %>
+            </div>
+            <ul class="menu grow w-full px-3 gap-1 sidebar-menu">
+              <li><%= link_to root_path, class: nav_class(root_path), title: "Dashboard" do %><%= icon "dashboard" %> <span class="sidebar-text">Dashboard</span><% end %></li>
+              <li><%= link_to transactions_path, class: nav_class(transactions_path), title: "Transactions" do %><%= icon "transactions" %> <span class="sidebar-text">Transactions</span><% end %></li>
+              <li><%= link_to accounts_path, class: nav_class(accounts_path), title: "Accounts" do %><%= icon "accounts" %> <span class="sidebar-text">Accounts</span><% end %></li>
+              <li><%= link_to categories_path, class: nav_class(categories_path), title: "Categories" do %><%= icon "categories" %> <span class="sidebar-text">Categories</span><% end %></li>
+            </ul>
+            <div class="dropdown dropdown-top w-full px-3 pb-4 profile-menu">
+              <label tabindex="0" class="profile-menu-trigger flex w-fit rounded-full p-1 hover:bg-base-300 cursor-pointer transition" title="<%= Current.user.name %>">
+                <%= user_avatar Current.user, size: 10 %>
+              </label>
+              <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box border border-base-300 shadow-lg w-52 p-1.5 z-50 mb-1">
+                <li><button data-action="keyboard#toggleTheme"><%= icon "moon" %> <span>Theme <kbd class="kbd kbd-sm">m</kbd></span></button></li>
+                <li><button data-controller="dialog" data-dialog-id="shortcuts_modal" data-action="dialog#open"><%= icon "keyboard" %> <span>Shortcuts <kbd class="kbd kbd-sm">?</kbd></span></button></li>
+                <li><button data-action="sidebar#toggle"><span class="icon-collapse"><%= icon "chevrons-left" %></span><span class="icon-expand"><%= icon "chevrons-right" %></span> <span>Collapse</span></button></li>
+                <li><%= link_to session_path, data: { turbo_method: :delete } do %><%= icon "logout" %> <span>Sign out</span><% end %></li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-      <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto">
-        <%= yield %>
-      </main>
     <% else %>
-      <main class="flex-1 flex items-center justify-center p-4">
+      <main class="min-h-screen flex items-center justify-center p-4 bg-base-200">
         <%= yield %>
       </main>
     <% end %>
-    <footer class="footer footer-center border-t border-base-300 bg-base-100 p-4 text-sm text-base-content/60">
-      <aside class="flex items-center gap-1.5">
-        <%= ant_icon size: 14 %>
-        <p>
-          Finants — a
-          <a href="https://redant.com.au" target="_blank" rel="noreferrer" class="link link-hover font-medium text-base-content/80">Red Ant</a>
-          experiment,
-          <span class="whitespace-nowrap">built with AI.</span>
-        </p>
-      </aside>
-    </footer>
+
+    <dialog id="shortcuts_modal" class="modal">
+      <div class="modal-box">
+        <h3 class="font-bold text-lg">Keyboard shortcuts</h3>
+        <div class="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 items-center">
+          <span><kbd class="kbd kbd-sm">g</kbd> <kbd class="kbd kbd-sm">d</kbd></span><span>Dashboard</span>
+          <span><kbd class="kbd kbd-sm">g</kbd> <kbd class="kbd kbd-sm">t</kbd></span><span>Transactions</span>
+          <span><kbd class="kbd kbd-sm">g</kbd> <kbd class="kbd kbd-sm">a</kbd></span><span>Accounts</span>
+          <span><kbd class="kbd kbd-sm">g</kbd> <kbd class="kbd kbd-sm">c</kbd></span><span>Categories</span>
+          <span><kbd class="kbd kbd-sm">n</kbd></span><span>New transaction</span>
+          <span><kbd class="kbd kbd-sm">m</kbd></span><span>Toggle dark / light mode</span>
+          <span><kbd class="kbd kbd-sm">?</kbd></span><span>This help</span>
+          <span><kbd class="kbd kbd-sm">esc</kbd></span><span>Close dialogs</span>
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop"><button>close</button></form>
+    </dialog>
+
+    <% if flash.any? %>
+      <div class="toast toast-end toast-bottom z-50">
+        <% flash.each do |type, message| %>
+          <div class="alert <%= type.to_s == "alert" ? "alert-error" : "alert-success" %>" data-controller="flash">
+            <span><%= message %></span>
+            <button class="btn btn-ghost btn-xs" data-action="flash#dismiss" aria-label="Dismiss">✕</button>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
   </body>
 </html>

@@ -6,8 +6,8 @@ admin.update!(name: "Dan", role: "admin", password: "password", password_confirm
 
 {
   "income" => %w[Salary Interest Dividends Other],
-  "expense" => %w[Groceries Eating\ Out Utilities Rent/Mortgage Transport
-                  Subscriptions Insurance Health Entertainment
+  "expense" => %w[Groceries Eating\ Out Utilities Rent Mortgage\ Interest
+                  Transport Subscriptions Insurance Health Entertainment
                   Travel Household Giving Other]
 }.each do |kind, names|
   names.each do |name|

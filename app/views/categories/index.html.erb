@@ -1,4 +1,8 @@
 <% content_for :title, "Categories — Finants" %>
+<% mobile_nav "categories", categories_path %>
+<% content_for :mobile_action do %>
+  <label for="category-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> Add</label>
+<% end %>
 
 <% editing = @edit_category.present? %>
 <div class="drawer drawer-end">

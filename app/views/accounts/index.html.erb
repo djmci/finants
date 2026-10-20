@@ -1,4 +1,8 @@
 <% content_for :title, "Accounts — Finants" %>
+<% mobile_nav "accounts", accounts_path %>
+<% content_for :mobile_action do %>
+  <label for="account-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> Add</label>
+<% end %>
 
 <% editing = @edit_account.present? %>
 <div class="drawer drawer-end">

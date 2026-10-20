@@ -2,3 +2,21 @@
 @plugin "daisyui" {
   themes: emerald --default, forest --prefersdark;
 }
+
+@media (min-width: 64rem) {
+  .sidebar-collapsed > .drawer-side .sidebar-panel { width: 4.25rem; }
+  .sidebar-collapsed .sidebar-text,
+  .sidebar-collapsed .sidebar-hide-collapsed { display: none; }
+  .sidebar-collapsed .sidebar-collapsed-only { display: flex; }
+  .sidebar-collapsed .icon-collapse { display: none; }
+  .sidebar-collapsed .icon-expand { display: inline-flex; }
+  .sidebar-collapsed .menu li > * { justify-content: center; padding-inline: 0.5rem; }
+  .sidebar-collapsed .menu li > .menu-active { border-radius: 0; }
+  .sidebar-collapsed .menu { padding-inline: 0; }
+  .sidebar-collapsed .sidebar-logo { padding-inline: 0; }
+  .sidebar-collapsed .sidebar-logo > a { justify-content: center; }
+  .sidebar-collapsed .profile-menu { padding-inline: 0; }
+  .sidebar-collapsed .profile-menu-trigger { justify-content: center; padding-inline: 0; }
+}
+.sidebar-collapsed-only { display: none; }
+.icon-expand { display: none; }

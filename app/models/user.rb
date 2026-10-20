@@ -12,4 +12,8 @@ class User < ApplicationRecord
   def admin?
     role == "admin"
   end
+
+  def initials
+    name.to_s.split.first(2).map { |p| p[0] }.join.upcase.presence || "?"
+  end
 end
