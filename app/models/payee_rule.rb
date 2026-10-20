@@ -1,7 +1,7 @@
 class PayeeRule < ApplicationRecord
   belongs_to :category
 
-  validates :pattern, presence: true, uniqueness: { scope: :round_amount }
+  validates :pattern, presence: true, uniqueness: { scope: %i[round_amount max_amount_cents] }
 
   before_validation { self.pattern = self.class.normalize(pattern) }
 
@@ -20,8 +20,9 @@ class PayeeRule < ApplicationRecord
   # Longest matching pattern wins. New rules store ref-stripped
   # detection keys (per-txn refs would never repeat); legacy full-payee
   # patterns still match against the raw normalized payee.
-  # `round_amount` rules only apply when the amount ends in .00 (or
-  # doesn't) — e.g. a round AGL bill is the mobile plan, not energy.
+  # Conditions narrow a rule: `round_amount` matches .00 (or non-.00)
+  # amounts only; `max_amount_cents` caps the magnitude, spends only —
+  # e.g. sub-$20 kid top-ups are eating out, larger transfers aren't.
   def self.for(payee, amount_cents: nil)
     key = detection_key(payee)
     raw = normalize(payee)
@@ -29,10 +30,18 @@ class PayeeRule < ApplicationRecord
     matches = includes(:category).select { |r| key.include?(r.pattern) || raw.include?(r.pattern) }
     if amount_cents
       round = (amount_cents % 100).zero?
-      exact = matches.select { |r| r.round_amount == round }
-      matches = exact.presence || matches.select { |r| r.round_amount.nil? }.presence || matches
+      # Conditions gate a rule: flag mismatch or magnitude over cap
+      # means the rule doesn't apply to this transaction at all.
+      matches = matches.select do |r|
+        (r.round_amount.nil? || r.round_amount == round) &&
+          (r.max_amount_cents.nil? || (amount_cents.negative? && amount_cents.abs <= r.max_amount_cents))
+      end
+    else
+      matches = matches.select { |r| r.round_amount.nil? && r.max_amount_cents.nil? }
     end
-    matches.max_by { |r| r.pattern.length }&.category
+    # More conditions = more specific; then longest pattern wins.
+    matches.max_by { |r| [ (r.round_amount.nil? ? 0 : 1) + (r.max_amount_cents ? 1 : 0), r.pattern.length ] }
+           &.category
   end
 
   def self.learn(payee, category, amount_cents = nil)
