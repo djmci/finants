@@ -47,7 +47,7 @@
               </td>
               <td class="text-right"><%= signed_money txn.amount_cents %></td>
               <td class="text-right whitespace-nowrap w-12">
-                <%= link_to transactions_path(edit: txn.id, account: params[:account], owner: params[:owner], q: params[:q], uncategorised: params[:uncategorised]), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
+                <%= link_to transactions_path(edit: txn.id, account: params[:account], owner: params[:owner], q: params[:q], uncategorised: params[:uncategorised], anchor: "transaction_#{txn.id}"), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
                   <%= icon "edit", class: "size-4" %>
                 <% end %>
               </td>
