@@ -36,4 +36,19 @@ class RecurringTest < ActiveSupport::TestCase
     dates = Recurring.occurrences(rule, Date.new(2026, 10, 1)..Date.new(2026, 12, 31))
     assert_equal [ Date.new(2026, 10, 5), Date.new(2026, 10, 12) ], dates
   end
+
+  test "once fires a single time at start_on" do
+    rule = RecurringRule.new(frequency: "once", every: 1, start_on: Date.new(2026, 11, 20))
+    assert_equal [ Date.new(2026, 11, 20) ], Recurring.occurrences(rule, Date.new(2026, 10, 1)..Date.new(2026, 12, 31))
+  end
+
+  test "overdue once projects at range start — could land any time" do
+    rule = RecurringRule.new(frequency: "once", every: 1, start_on: Date.new(2026, 9, 1))
+    assert_equal [ Date.new(2026, 10, 1) ], Recurring.occurrences(rule, Date.new(2026, 10, 1)..Date.new(2026, 12, 31))
+  end
+
+  test "passed end_on kills an unresolved once" do
+    rule = RecurringRule.new(frequency: "once", every: 1, start_on: Date.new(2026, 9, 1), end_on: Date.new(2026, 9, 30))
+    assert_empty Recurring.occurrences(rule, Date.new(2026, 10, 1)..Date.new(2026, 12, 31))
+  end
 end

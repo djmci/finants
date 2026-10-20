@@ -14,6 +14,8 @@ class Transaction < ApplicationRecord
   after_save :learn_payee_rule, if: -> { saved_change_to_category_id? && category_id.present? && payee.present? }
   # Link to a matching recurring rule (payee substring + same amount).
   before_validation :suggest_rule, if: -> { recurring_rule_id.nil? && account_id.present? && payee.present? && amount_cents.present? }
+  # A linked one-off rule resolves itself — the planned expense occurred.
+  after_save :resolve_once_rule, if: -> { saved_change_to_recurring_rule_id? && recurring_rule_id.present? }
 
   scope :ordered, -> { order(posted_on: :desc, id: :desc) }
   scope :uncategorised, -> { where(category_id: nil) }
@@ -61,5 +63,9 @@ class Transaction < ApplicationRecord
 
   def suggest_rule
     self.recurring_rule = RecurringRule.match_for(account:, payee:, amount_cents:)
+  end
+
+  def resolve_once_rule
+    recurring_rule&.update!(active: false) if recurring_rule&.frequency == "once"
   end
 end

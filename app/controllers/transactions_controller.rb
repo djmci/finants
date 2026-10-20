@@ -10,6 +10,7 @@ class TransactionsController < ApplicationController
     @categories = Category.active.order(:kind, :name)
     @members = User.order(:name)
     @uncategorised_count = Transaction.uncategorised.count
+    @once_rules = RecurringRule.active.where(frequency: "once").includes(:account).order(:payee)
   end
 
   def create
@@ -46,7 +47,7 @@ class TransactionsController < ApplicationController
   private
 
   def txn_params
-    params.require(:transaction).permit(:account_id, :posted_on, :payee, :amount, :category_id, :notes)
+    params.require(:transaction).permit(:account_id, :posted_on, :payee, :amount, :category_id, :notes, :recurring_rule_id)
   end
 
   def apply_direction(txn)

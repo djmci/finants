@@ -25,6 +25,15 @@
     <%= f.label :category_id, "Category", class: "label" %>
     <%= f.collection_select :category_id, categories, :id, :display_name, { include_blank: "Uncategorised" }, class: "select w-full" %>
   </div>
+  <% if once_rules.any? %>
+    <div class="fieldset">
+      <%= f.label :recurring_rule_id, "Planned expense", class: "label" %>
+      <%= f.select :recurring_rule_id,
+          options_for_select([ [ "None", "" ] ] + once_rules.map { |r| [ "#{r.payee} — #{r.account.name}", r.id ] }, txn.recurring_rule_id),
+          {}, class: "select w-full" %>
+      <p class="text-xs text-base-content/50 mt-1">Links this to a one-off rule — the rule resolves once matched.</p>
+    </div>
+  <% end %>
   <div class="fieldset">
     <%= f.label :notes, class: "label" %>
     <%= f.text_area :notes, rows: 2, class: "textarea w-full" %>

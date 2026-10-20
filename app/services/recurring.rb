@@ -5,6 +5,13 @@ class Recurring
   # Dates a rule fires on within `range` (Range of Dates), honouring
   # start_on/end_on.
   def self.occurrences(rule, range)
+    if rule.frequency == "once"
+      # Fires once at start_on; if overdue-but-unresolved it projects at
+      # today (could land any time); a passed end_on means it's dead.
+      return [] if rule.end_on && rule.end_on < range.begin
+      d = [ rule.start_on, range.begin ].max
+      return d <= range.end ? [ d ] : []
+    end
     first = [ range.begin, rule.start_on ].max
     last = [ range.end, rule.end_on ].compact.min
     return [] if first > last

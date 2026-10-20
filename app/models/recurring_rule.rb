@@ -2,7 +2,7 @@ class RecurringRule < ApplicationRecord
   include DollarField
 
   KINDS = %w[expense income transfer].freeze
-  FREQUENCIES = %w[weekly fortnightly monthly yearly].freeze
+  FREQUENCIES = %w[once weekly fortnightly monthly yearly].freeze
 
   belongs_to :account
   belongs_to :category, optional: true
@@ -38,6 +38,10 @@ class RecurringRule < ApplicationRecord
   end
 
   def human_schedule
+    if frequency == "once"
+      return "once — by #{end_on.strftime("%-d %b %y")}" if end_on
+      "once — around #{start_on.strftime("%-d %b %y")}"
+    end
     count = every > 1 ? "every #{every} " : "every "
     case frequency
     when "weekly" then "#{count}week#{"s" if every > 1}, #{start_on.strftime("%A")}s"
