@@ -29,7 +29,7 @@ class TransactionsController < ApplicationController
     txn.assign_attributes(txn_params)
     apply_direction(txn)
     if txn.save
-      redirect_back_to_page transactions_path, notice: "Transaction saved."
+      redirect_back_to_page transactions_path, anchor: "transaction_#{txn.id}", notice: "Transaction saved."
     else
       redirect_back_to_page transactions_path(edit: txn.id), alert: txn.errors.full_messages.to_sentence
     end

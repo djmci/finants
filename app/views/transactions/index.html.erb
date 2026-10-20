@@ -30,7 +30,7 @@
         </thead>
         <tbody>
           <% @transactions.each do |txn| %>
-            <tr class="hover:bg-base-200/50">
+            <tr id="transaction_<%= txn.id %>" class="hover:bg-base-200/50">
               <td class="whitespace-nowrap text-base-content/70"><%= txn.posted_on.strftime("%-d %b %Y") %></td>
               <td>
                 <span class="font-medium"><%= txn.payee.presence || "—" %></span>

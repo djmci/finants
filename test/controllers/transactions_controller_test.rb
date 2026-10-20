@@ -53,4 +53,12 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
       delete transaction_url(out), headers: { "HTTP_REFERER" => transactions_url }
     end
   end
+
+  test "update redirects back with an anchor to the edited row" do
+    sign_in_as users(:one)
+    txn = transactions(:pay)
+    patch transaction_url(txn), params: { transaction: { payee: "Updated" } },
+          headers: { "HTTP_REFERER" => transactions_url }
+    assert_equal "#{transactions_url}#transaction_#{txn.id}", response.location
+  end
 end
