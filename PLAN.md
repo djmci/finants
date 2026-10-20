@@ -149,12 +149,22 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
 - Tests: occurrence math (clamp, intervals, mid-range anchor, end_on),
   match_for, auto-link — 68 runs green.
 
-## Phase 5 — forecast + dashboard [ ]
+## Phase 5 — forecast + dashboard [x]
 
 - `Forecast` service: pure, bulk-loaded.
-- Dashboard: account balances, projected-balance chart (per account +
-  combined), next-30-days bills/income list, horizon selector.
-- Discretionary estimate from category history.
+  - Seed = opening balance + actual txns before horizon start.
+  - Daily series = seed + rule occurrences + discretionary drift.
+  - Transfer rules debit source / credit target (household total unaffected).
+  - Discretionary v1 = trailing-90d mean daily outflow per account,
+    excluding transfer pairs and rule-linked txns.
+  - `series` / `combined` / `minimum` APIs; negative balances handled
+    (loan accounts).
+- Dashboard: balance chart (90d actual solid → projection dashed, today
+  seam, signed y-axis with zero line), per-account selector, 3/6/12mo
+  horizon tabs, projected-end and floor-balance stats; Upcoming panel
+  moved below it.
+- Tests: rule descent, transfer neutrality, discretionary drift,
+  rule-link exclusion, floor detection — 73 runs green.
 
 ## Phase 6 — health report [ ]
 

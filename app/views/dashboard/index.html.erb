@@ -36,6 +36,32 @@
   </div>
 
   <div class="card card-border bg-base-100">
+    <div class="card-body gap-3">
+      <div class="flex items-center justify-between flex-wrap gap-2">
+        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Balance forecast<%= " — #{@forecast_account.name}" if @forecast_account %></h2>
+        <div class="flex items-center gap-1">
+          <%= form_with url: root_path, method: :get, local: true, class: "flex items-center gap-1" do %>
+            <%= hidden_field_tag :months, @months %>
+            <%= select_tag :account, options_for_select([ [ "All accounts", "" ] ] + @accounts.map { |a| [ a.name, a.id ] }, params[:account]),
+                onchange: "this.form.requestSubmit()", class: "select select-sm w-40" %>
+          <% end %>
+          <div class="join">
+            <% [ 3, 6, 12 ].each do |m| %>
+              <%= link_to "#{m}mo", root_path(months: m, account: params[:account]),
+                  class: "join-item btn btn-sm #{@months == m ? "btn-primary" : ""}" %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+      <%= render "balance_chart", history: @history, projection: @projection %>
+      <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+        <span class="text-base-content/70">Projected <%= @projection.last&.first&.strftime("%-d %b %Y") %>: <strong><%= signed_money(@projection.last&.last || 0) %></strong></span>
+        <span class="text-base-content/70">Lowest point: <strong class="<%= "text-error" if @floor && @floor.last.negative? %>"><%= signed_money(@floor&.last || 0) %></strong> on <%= @floor&.first&.strftime("%-d %b %Y") %></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-border bg-base-100">
     <div class="card-body p-0">
       <div class="flex items-center justify-between border-b border-base-300 px-4 py-2.5">
         <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Upcoming — next 30 days</h2>

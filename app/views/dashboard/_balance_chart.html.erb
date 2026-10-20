@@ -1,0 +1,45 @@
+<%# Balance chart: solid actual history, dashed projection, today seam.
+    Handles negative balances (loan accounts). Locals:
+      history: [[date, cents]], projection: [[date, cents]] %>
+<%
+  w, h = 720, 220
+  pad_l, pad_r, pad_t, pad_b = 56, 12, 14, 24
+  values = history.map(&:last) + projection.map(&:last)
+  max_v = (values.max || 0).then { |v| v.positive? ? v : 0 }
+  min_v = (values.min || 0).then { |v| v.negative? ? v : 0 }
+  span_v = [ max_v - min_v, 1 ].max
+  max_v += span_v * 0.06; min_v -= span_v * 0.06
+  span_v = max_v - min_v
+  min_d = history.first&.first || Date.current
+  max_d = (projection.last&.first || Date.current)
+  span_d = [ max_d - min_d, 1 ].max
+  x = ->(d) { pad_l + (d - min_d).to_f / span_d * (w - pad_l - pad_r) }
+  y = ->(v) { h - pad_b - (v - min_v) / span_v * (h - pad_t - pad_b) }
+  to_line = ->(pts) { pts.map { |d, v| "#{x.(d).round(1)},#{y.(v).round(1)}" }.join(" ") }
+  fmt = ->(v) do
+    d = v / 100.0
+    s = d.abs >= 1000 ? "#{(d.abs / 1000).round(1)}k".sub(".0k", "k") : d.abs.round.to_s
+    "#{"-" if v.negative?}$#{s}"
+  end
+  ticks = [ min_v, (min_v + max_v) / 2, max_v ]
+  today = Date.current
+  area = "#{x.(min_d).round(1)},#{h - pad_b} #{to_line.(history)} #{x.([ today, max_d ].min).round(1)},#{h - pad_b}"
+  fseries = history.any? ? [ history.last ] + projection : projection
+%>
+<svg viewBox="0 0 <%= w %> <%= h %>" class="w-full h-auto" role="img">
+  <% ticks.each do |gv| %>
+    <line x1="<%= pad_l %>" x2="<%= w - pad_r %>" y1="<%= y.(gv).round(1) %>" y2="<%= y.(gv).round(1) %>" class="stroke-base-300" stroke-dasharray="2 3" stroke-width="1"/>
+    <text x="<%= pad_l - 6 %>" y="<%= y.(gv) + 3 %>" text-anchor="end" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50"><%= fmt.(gv) %></text>
+  <% end %>
+  <% if min_v < 0 %>
+    <line x1="<%= pad_l %>" x2="<%= w - pad_r %>" y1="<%= y.(0).round(1) %>" y2="<%= y.(0).round(1) %>" class="stroke-base-content/40" stroke-width="1"/>
+  <% end %>
+  <polygon points="<%= area %>" class="fill-info/10"/>
+  <polyline points="<%= to_line.(history) %>" fill="none" class="stroke-info" stroke-width="2" stroke-linejoin="round"/>
+  <polyline points="<%= to_line.(fseries) %>" fill="none" class="stroke-info" stroke-width="2" stroke-dasharray="4 3" stroke-linejoin="round"/>
+  <line x1="<%= x.(today).round(1) %>" x2="<%= x.(today).round(1) %>" y1="<%= pad_t %>" y2="<%= h - pad_b %>"
+        class="stroke-base-content/30" stroke-dasharray="2 3" stroke-width="1"/>
+  <text x="<%= x.(today) + 4 %>" y="<%= pad_t + 8 %>" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50">TODAY</text>
+  <text x="<%= pad_l %>" y="<%= h - 6 %>" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50"><%= min_d.strftime("%-d %b %y").upcase %></text>
+  <text x="<%= w - pad_r %>" y="<%= h - 6 %>" text-anchor="end" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50"><%= max_d.strftime("%-d %b %y").upcase %></text>
+</svg>
