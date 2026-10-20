@@ -1,0 +1,40 @@
+<% content_for :title, "Imports — Finants" %>
+<% mobile_nav "import", imports_path %>
+<% content_for :mobile_action do %>
+  <%= link_to new_import_path, class: "btn btn-primary btn-sm" do %><%= icon "plus" %> Import<% end %>
+<% end %>
+
+<div class="space-y-4">
+  <div class="flex items-center justify-between flex-wrap gap-2">
+    <h1 class="font-bold text-xl">Imports</h1>
+    <%= link_to new_import_path, class: "hidden sm:inline-flex btn btn-primary btn-sm" do %><%= icon "plus" %> Import CSV<% end %>
+  </div>
+
+  <div class="card card-border bg-base-100 overflow-x-auto">
+    <table class="table">
+      <thead>
+        <tr class="text-xs text-base-content/50"><th>Imported</th><th>File</th><th class="hidden sm:table-cell">Account</th><th class="hidden sm:table-cell">Format</th><th>Rows</th><th>Status</th><th class="w-12"></th></tr>
+      </thead>
+      <tbody>
+        <% @imports.each do |import| %>
+          <tr class="hover:bg-base-200/50">
+            <td class="whitespace-nowrap text-base-content/70"><%= import.created_at.strftime("%-d %b %Y") %></td>
+            <td><%= link_to import.filename || "—", import_path(import), class: "link link-hover font-medium font-mono text-xs" %></td>
+            <td class="hidden sm:table-cell text-base-content/70"><%= import.account&.name || "—" %></td>
+            <td class="hidden sm:table-cell"><span class="badge badge-soft badge-xs"><%= import.source_format.presence || "custom" %></span></td>
+            <td><%= import.rows_count %></td>
+            <td><span class="badge badge-xs <%= import.status == "committed" ? "badge-success badge-soft" : "badge-warning badge-soft" %>"><%= import.status %></span></td>
+            <td class="text-right w-12">
+              <%= button_to import_path(import), method: :delete, class: "btn btn-ghost btn-circle btn-sm", title: "Remove import + its transactions", data: { turbo_confirm: "Remove this import and all #{import.rows_count} transactions it created?" } do %>
+                <%= icon "trash", class: "size-4" %>
+              <% end %>
+            </td>
+          </tr>
+        <% end %>
+        <% if @imports.empty? %>
+          <tr><td colspan="7" class="text-center text-base-content/50 py-8">No imports yet — drop in a bank CSV export.</td></tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

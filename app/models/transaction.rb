@@ -9,6 +9,9 @@ class Transaction < ApplicationRecord
   validates :posted_on, presence: true
   validates :amount_cents, presence: true, numericality: { other_than: 0 }
 
+  # Payee → category rules learned whenever a categorised txn has a payee.
+  after_save :learn_payee_rule, if: -> { saved_change_to_category_id? && category_id.present? && payee.present? }
+
   scope :ordered, -> { order(posted_on: :desc, id: :desc) }
   scope :uncategorised, -> { where(category_id: nil) }
   scope :excluding_transfers, -> { where(transfer_pair_id: nil) }
@@ -45,5 +48,11 @@ class Transaction < ApplicationRecord
       ]
     end
     txns
+  end
+
+  private
+
+  def learn_payee_rule
+    PayeeRule.learn(payee, category)
   end
 end

@@ -101,13 +101,22 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
 - Dashboard: account cards + uncategorised count (forecast lands in
   phase 5).
 
-## Phase 3 — CSV import [ ]
+## Phase 3 — CSV import [x]
 
-- Upload → header sniff → preset detection → preview → commit.
-- Presets: HSBC AU, Qudos, Amex AU. Generic mapper fallback for others.
-- Batches: `imports` table; delete a batch to undo.
-- Dedupe on `import_hash`; flag near-dupes (same date+amount).
-- Payee → category rule learning.
+- Upload → header sniff → preview → commit; `imports.payload` stores the
+  raw CSV so preview/commit are separate steps.
+- `CsvImport` service: presets detected by header signature (HSBC /
+  Qudos / Amex — **provisional until verified against real exports**),
+  generic column-mapper with heuristic prefill, debit+credit or signed
+  amount columns, `flip` for spend-positive exports, d/m/Y + ISO dates.
+- Batches: draft/committed `status`; deleting an import cascades its
+  transactions (undo). Dedupe via `import_hash` (account + raw row),
+  in-batch too — re-uploading the same file is a no-op.
+- Payee → category `payee_rules`: learned on manual categorisation
+  (after_save on category change), substring match longest-first,
+  applied at commit.
+- Tests: preset detection, sign flip, debit/credit, dedupe, undo,
+  rule learning — 53 runs green.
 - Note: HSBC online CSV only reaches ~90 days back; Amex ~6 statements.
 
 ## Phase 3b — PDF statement import [ ]

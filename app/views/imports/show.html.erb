@@ -1,0 +1,69 @@
+<% content_for :title, "Import — Finants" %>
+<% mobile_nav "import", imports_path %>
+
+<div class="space-y-4">
+  <div class="flex items-center gap-3">
+    <%= link_to imports_path, class: "btn btn-ghost btn-sm btn-square", title: "Back to imports" do %><%= icon "chevron-left" %><% end %>
+    <h1 class="font-bold text-xl"><%= @import.filename %></h1>
+    <span class="badge badge-soft badge-xs"><%= @import.source_format.presence || "custom" %></span>
+    <span class="badge badge-xs <%= @import.status == "committed" ? "badge-success badge-soft" : "badge-warning badge-soft" %>"><%= @import.status %></span>
+  </div>
+
+  <% if @import.status == "committed" %>
+    <div class="card card-border bg-base-100">
+      <div class="card-body">
+        <p><strong><%= @import.rows_count %></strong> transactions committed to <strong><%= @import.account&.name %></strong>.</p>
+        <p class="text-sm text-base-content/60">Wrong file? Deleting the import removes every transaction it created.</p>
+        <div>
+          <%= button_to "Undo import", import_path(@import), method: :delete, class: "btn btn-error btn-soft btn-sm", data: { turbo_confirm: "Remove this import and all #{@import.rows_count} transactions it created?" } %>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="card card-border bg-base-100">
+      <div class="card-body">
+        <h2 class="font-semibold">Column mapping</h2>
+        <%= form_with url: import_path(@import), method: :get, class: "grid grid-cols-2 sm:grid-cols-3 gap-3" do %>
+          <% cols = @csv.headers %>
+          <% { "date" => "Date", "payee" => "Payee / description", "amount" => "Amount (signed)", "debit" => "Debit", "credit" => "Credit" }.each do |key, label| %>
+            <div class="fieldset">
+              <%= label_tag "mapping_#{key}", label, class: "label" %>
+              <%= select_tag "mapping[#{key}]", options_for_select([ [ "—", "" ] ] + cols.map { |c| [ c, c ] }, @mapping[key]), id: "mapping_#{key}", class: "select select-sm w-full" %>
+            </div>
+          <% end %>
+          <div class="fieldset">
+            <%= label_tag "mapping_sign", "Amount sign", class: "label" %>
+            <%= select_tag "mapping[sign]", options_for_select([ [ "As exported", "as_is" ], [ "Flip (spend shown positive)", "flip" ] ], @mapping["sign"]), id: "mapping_sign", class: "select select-sm w-full" %>
+          </div>
+          <div class="col-span-full flex items-center gap-2">
+            <%= submit_tag "Preview", class: "btn btn-sm", formmethod: :get %>
+            <%= submit_tag "Commit import", class: "btn btn-primary btn-sm", formaction: commit_import_path(@import), formmethod: :post, data: { turbo_confirm: "Commit #{@preview&.count { |r| !r[:duplicate] && !r[:error] }} new transactions?" } %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <% if @preview %>
+      <div class="card card-border bg-base-100 overflow-x-auto">
+        <table class="table table-sm">
+          <thead>
+            <tr class="text-xs text-base-content/50"><th>Date</th><th>Payee</th><th class="text-right">Amount</th><th class="hidden sm:table-cell">Category</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% @preview.each do |row| %>
+              <tr class="<%= "opacity-40" if row[:duplicate] || row[:error] %>">
+                <td class="whitespace-nowrap"><%= row[:posted_on]&.strftime("%-d %b %Y") || "—" %></td>
+                <td><%= row[:payee] || content_tag(:span, row[:error], class: "text-error text-xs") %></td>
+                <td class="text-right"><%= row[:amount_cents] ? signed_money(row[:amount_cents]) : "—" %></td>
+                <td class="hidden sm:table-cell"><% if row[:category] %><span class="badge badge-soft badge-xs"><%= row[:category].display_name %></span><% end %></td>
+                <td class="text-right"><% if row[:duplicate] %><span class="badge badge-ghost badge-xs">dupe</span><% end %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="alert alert-warning"><span>Map a date column and an amount (or debit/credit) column to preview rows.</span></div>
+    <% end %>
+  <% end %>
+</div>

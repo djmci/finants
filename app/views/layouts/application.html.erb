@@ -78,6 +78,7 @@
               <li><%= link_to transactions_path, class: nav_class(transactions_path), title: "Transactions" do %><%= icon "transactions" %> <span class="sidebar-text">Transactions</span><% end %></li>
               <li><%= link_to accounts_path, class: nav_class(accounts_path), title: "Accounts" do %><%= icon "accounts" %> <span class="sidebar-text">Accounts</span><% end %></li>
               <li><%= link_to categories_path, class: nav_class(categories_path), title: "Categories" do %><%= icon "categories" %> <span class="sidebar-text">Categories</span><% end %></li>
+              <li><%= link_to imports_path, class: nav_class(imports_path), title: "Imports" do %><%= icon "import" %> <span class="sidebar-text">Imports</span><% end %></li>
             </ul>
             <div class="dropdown dropdown-top w-full px-3 pb-4 profile-menu">
               <label tabindex="0" class="profile-menu-trigger flex w-fit rounded-full p-1 hover:bg-base-300 cursor-pointer transition" title="<%= Current.user.name %>">

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_20_030256) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_20_031727) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -46,8 +46,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_030256) do
     t.integer "rows_count", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "status", default: "draft", null: false
+    t.text "payload"
+    t.json "mapping"
     t.index ["account_id"], name: "index_imports_on_account_id"
     t.index ["user_id"], name: "index_imports_on_user_id"
+  end
+
+  create_table "payee_rules", force: :cascade do |t|
+    t.string "pattern", null: false
+    t.bigint "category_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category_id"], name: "index_payee_rules_on_category_id"
+    t.index ["pattern"], name: "index_payee_rules_on_pattern", unique: true
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -95,6 +107,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_030256) do
   add_foreign_key "categories", "categories", column: "parent_id"
   add_foreign_key "imports", "accounts"
   add_foreign_key "imports", "users"
+  add_foreign_key "payee_rules", "categories"
   add_foreign_key "sessions", "users"
   add_foreign_key "transactions", "accounts"
   add_foreign_key "transactions", "categories"

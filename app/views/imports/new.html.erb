@@ -1,0 +1,25 @@
+<% content_for :title, "Import CSV — Finants" %>
+<% mobile_nav "import", imports_path %>
+
+<div class="max-w-lg mx-auto space-y-4">
+  <h1 class="font-bold text-xl">Import transactions</h1>
+
+  <div class="card card-border bg-base-100">
+    <div class="card-body">
+      <p class="text-sm text-base-content/60">CSV exports from HSBC, Qudos and Amex are detected automatically — anything else gets a column mapper on the next step.</p>
+      <%= form_with url: imports_path, method: :post, multipart: true, class: "space-y-4" do |f| %>
+        <div class="fieldset">
+          <%= f.label :account_id, "Account", class: "label" %>
+          <%= f.collection_select :account_id, @accounts, :id, :name, { prompt: "Which account is this for?" }, required: true, class: "select w-full" %>
+        </div>
+        <div class="fieldset">
+          <%= f.label :file, "CSV file", class: "label" %>
+          <%= f.file_field :file, accept: ".csv,text/csv", required: true, class: "file-input w-full" %>
+        </div>
+        <%= f.submit "Upload and preview", class: "btn btn-primary w-full" %>
+      <% end %>
+    </div>
+  </div>
+
+  <p class="text-xs text-base-content/50">Deduped against this account's existing transactions on import — re-uploading the same file is safe.</p>
+</div>
