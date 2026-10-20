@@ -4,9 +4,10 @@ class TransactionsController < ApplicationController
   def index
     @transactions = Transaction.includes(:account, :category, :user, :recurring_rule).ordered
     @transactions = @transactions.where(account_id: params[:account]) if params[:account].present?
-    @transactions = @transactions.uncategorised if params[:uncategorised].present?
     @transactions = @transactions.for_owner(params[:owner]) if params[:owner].present?
     @transactions = @transactions.where("payee ILIKE ?", "%#{params[:q].strip}%") if params[:q].present?
+    @uncategorised_count = @transactions.uncategorised.count
+    @transactions = @transactions.uncategorised if params[:uncategorised].present?
     @pages = (@transactions.count.to_f / PAGE_SIZE).ceil
     @page = params[:page].to_i.clamp(1, [ @pages, 1 ].max)
     @transactions = @transactions.offset((@page - 1) * PAGE_SIZE).limit(PAGE_SIZE)
@@ -14,7 +15,6 @@ class TransactionsController < ApplicationController
     @accounts = Account.active.order(:name)
     @categories = Category.active.order(:kind, :name)
     @members = User.order(:name)
-    @uncategorised_count = Transaction.uncategorised.count
     @once_rules = RecurringRule.active.where(frequency: "once").includes(:account).order(:payee)
     @suggestions = suggest_categories(@transactions.select { |t| t.category_id.nil? })
   end
