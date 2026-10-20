@@ -8,7 +8,6 @@
 <% editing_rule = @edit_rule.present? %>
 <div class="drawer drawer-end">
   <input id="category-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= editing || params[:new].present? %>" />
-  <input id="rule-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= editing_rule || params[:new_rule].present? %>" />
 
   <div class="drawer-content space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
@@ -111,7 +110,11 @@
       <%= render "form", category: @edit_category || Category.new, parents: @parents %>
     </div>
   </div>
+</div>
 
+<div class="drawer drawer-end">
+  <input id="rule-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= editing_rule || params[:new_rule].present? %>" />
+  <div class="drawer-content"></div>
   <div class="drawer-side z-50">
     <label for="rule-drawer" aria-label="close drawer" class="drawer-overlay"></label>
     <div class="bg-base-100 min-h-full w-full sm:w-96 p-5 border-l border-base-300 overflow-y-auto">
