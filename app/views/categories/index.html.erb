@@ -40,11 +40,9 @@
               <tr class="hover:bg-base-200/50">
                 <td class="font-mono text-xs"><%= rule.pattern.truncate(60) %></td>
                 <td>
-                  <% conds = [] %>
-                  <% conds << (rule.round_amount ? "round" : "non-round") unless rule.round_amount.nil? %>
-                  <% conds << "≤#{money(rule.max_amount_cents)}" if rule.max_amount_cents %>
-                  <% conds << "#{rule.direction} only" if rule.direction %>
-                  <% conds.each do |c| %><span class="badge badge-ghost badge-xs"><%= c %></span><% end %>
+                  <% unless rule.round_amount.nil? %><span class="badge badge-ghost badge-xs"><%= rule.round_amount ? "round" : "non-round" %></span><% end %>
+                  <% if rule.max_amount_cents %><span class="badge badge-ghost badge-xs">≤<%= money(rule.max_amount_cents) %></span><% end %>
+                  <% if rule.direction %><span class="badge badge-ghost badge-xs"><%= rule.direction %> only</span><% end %>
                 </td>
                 <td><span class="badge badge-soft badge-xs"><%= rule.category.display_name %></span></td>
                 <td class="text-base-content/60 text-xs"><%= rule.auto? ? "auto" : "suggest" %></td>
