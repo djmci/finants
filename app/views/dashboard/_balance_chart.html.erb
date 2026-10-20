@@ -40,6 +40,15 @@
   <line x1="<%= x.(today).round(1) %>" x2="<%= x.(today).round(1) %>" y1="<%= pad_t %>" y2="<%= h - pad_b %>"
         class="stroke-base-content/30" stroke-dasharray="2 3" stroke-width="1"/>
   <text x="<%= x.(today) + 4 %>" y="<%= pad_t + 8 %>" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50">TODAY</text>
+  <% month_step = span_d > 400 ? 3 : 1 %>
+  <% m = (min_d + 1).beginning_of_month %>
+  <% while m <= max_d %>
+    <% if m > min_d %>
+      <line x1="<%= x.(m).round(1) %>" x2="<%= x.(m).round(1) %>" y1="<%= h - pad_b %>" y2="<%= h - pad_b + 4 %>" class="stroke-base-content/40" stroke-width="1"/>
+      <text x="<%= x.(m).round(1) %>" y="<%= h - 6 %>" text-anchor="middle" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50"><%= m.strftime(m.year == today.year ? "%b" : "%b %y").upcase %></text>
+    <% end %>
+    <% m = m >> month_step %>
+  <% end %>
   <text x="<%= pad_l %>" y="<%= h - 6 %>" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50"><%= min_d.strftime("%-d %b %y").upcase %></text>
   <text x="<%= w - pad_r %>" y="<%= h - 6 %>" text-anchor="end" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50"><%= max_d.strftime("%-d %b %y").upcase %></text>
 </svg>

@@ -91,14 +91,22 @@ class Forecast
                         .group(:account_id, :payee, :amount_cents).count
     rules_by_account = @rules.select(&:active?).group_by(&:account_id)
     totals = Hash.new(0)
-    combos.each do |(account_id, payee, cents), count|
-      key = PayeeRule.detection_key(payee)
-      matched = rules_by_account.fetch(account_id, []).any? do |r|
-        rkey = PayeeRule.detection_key(r.payee)
-        rkey.present? && key.include?(rkey) &&
-          (r.settle? || r.amount_cents.abs == cents.abs)
+    combos.group_by { |(account_id, _, _), _| account_id }.each do |account_id, ac|
+      samples = ac.flat_map { |(_, _, cents), n| [ cents.abs ] * n }
+      median = samples.sort[samples.size / 2] || 0
+      cap = median * 4
+      ac.each do |(_, payee, cents), count|
+        # Rare outliers — one-off transfers like moving cash between own
+        # accounts — shouldn't feed the everyday-spend estimate.
+        next if count <= 2 && cents.abs > cap
+        key = PayeeRule.detection_key(payee)
+        matched = rules_by_account.fetch(account_id, []).any? do |r|
+          rkey = PayeeRule.detection_key(r.payee)
+          rkey.present? && key.include?(rkey) &&
+            (r.settle? || r.amount_cents.abs == cents.abs)
+        end
+        totals[account_id] += cents * count unless matched
       end
-      totals[account_id] += cents * count unless matched
     end
     totals.transform_values { |sum| sum / @window_days }
   end
