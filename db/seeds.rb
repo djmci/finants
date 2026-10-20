@@ -5,10 +5,11 @@ admin = User.find_or_initialize_by(email_address: "admin@finants.test")
 admin.update!(name: "Dan", role: "admin", password: "password", password_confirmation: "password")
 
 {
-  "income" => %w[Salary Interest Dividends Other],
-  "expense" => %w[Groceries Eating\ Out Utilities Rent Mortgage\ Interest
-                  School Transport Subscriptions Insurance Health Entertainment
-                  Travel Household Giving Other]
+  "income" => %w[Salary Interest Dividends Other Tax\ refund],
+  "expense" => %w[Communication Council\ rates Eating\ Out Energy Entertainment
+                  Giving Groceries Health Household Insurance Internet
+                  Music\ lesson Other Reimbursement Rent/Mortgage School Sport
+                  Subscriptions Transfer Transport Travel Utilities]
 }.each do |kind, names|
   names.each do |name|
     Category.find_or_create_by!(name:, kind:) { |c| c.active = true }

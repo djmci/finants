@@ -22,9 +22,10 @@
       <% end %>
     </div>
 
-    <div role="tablist" class="tabs tabs-bordered">
+    <div role="tablist" class="tabs tabs-border">
       <% %w[expense income rules].each do |tab| %>
-        <%= link_to tab.humanize, categories_path(tab:), class: "tab #{@tab == tab ? "tab-active" : ""}" %>
+        <%= link_to tab.humanize, categories_path(tab:), role: "tab",
+                    class: "tab py-2 whitespace-nowrap #{@tab == tab ? "tab-active" : ""}" %>
       <% end %>
     </div>
 
