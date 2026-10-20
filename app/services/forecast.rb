@@ -6,8 +6,8 @@
 #              + discretionary daily estimate
 #
 # Discretionary estimate v1: trailing `window_days` mean daily outflow
-# per account, excluding transfer pairs and rule-linked txns (they're
-# covered by the rules).
+# per account, excluding transfer pairs and anything matching an active
+# rule — the rules already model that spend, so it can't double-count.
 class Forecast
   attr_reader :accounts
 
@@ -65,13 +65,25 @@ class Forecast
   end
 
   # {account_id => daily expense cents (negative)}
+  # Excludes transfer pairs and anything matching an active rule —
+  # including rows not yet linked via recurring_rule_id (e.g. imported
+  # mortgage payments) — so they aren't double-counted by the rules.
   def discretionary_daily(range)
     from = range.begin - @window_days.days
-    Transaction.where(account: @accounts, posted_on: from..(range.begin - 1),
-                      recurring_rule_id: nil, transfer_pair_id: nil)
-               .where("amount_cents < 0")
-               .group(:account_id).sum(:amount_cents)
-               .transform_values { |sum| sum / @window_days }
+    combos = Transaction.where(account: @accounts, posted_on: from..(range.begin - 1),
+                               transfer_pair_id: nil)
+                        .where("amount_cents < 0")
+                        .group(:account_id, :payee, :amount_cents).count
+    rules_by_account = @rules.select(&:active?).group_by(&:account_id)
+    totals = Hash.new(0)
+    combos.each do |(account_id, payee, cents), count|
+      norm = PayeeRule.normalize(payee)
+      matched = rules_by_account.fetch(account_id, []).any? do |r|
+        r.amount_cents.abs == cents.abs && norm.include?(PayeeRule.normalize(r.payee))
+      end
+      totals[account_id] += cents * count unless matched
+    end
+    totals.transform_values { |sum| sum / @window_days }
   end
 
   # {account_id => balance in cents at range.begin}

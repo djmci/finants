@@ -1,5 +1,6 @@
 class DashboardController < ApplicationController
   HISTORY_DAYS = 90
+  LIQUID_KINDS = %w[everyday savings cash].freeze
 
   def index
     @accounts = Account.active.includes(:owner).order(:name)
@@ -8,15 +9,29 @@ class DashboardController < ApplicationController
     @upcoming = Recurring.occurrences_for(rules, Date.current..(Date.current + 30))
 
     @months = (params[:months].presence || 6).to_i.clamp(1, 24)
-    @forecast_account = @accounts.detect { |a| a.id.to_s == params[:account] }
-    scope = @forecast_account ? [ @forecast_account ] : @accounts
+    scope, @scope_label = forecast_scope
     forecast = Forecast.new(accounts: scope, rules: rules)
     @projection = forecast.combined(Date.current..(Date.current + @months.months))
     @history = balance_history(scope)
     @floor = @projection.min_by(&:last)
+    @net_flow = @projection.any? ? (@projection.last.last - @projection.first.last) / @months : 0
   end
 
   private
+
+  # Default = cash position (liquid accounts only — liabilities like the
+  # mortgage make the chart useless). account=all → net worth view.
+  def forecast_scope
+    case params[:account]
+    when "all"
+      [@accounts, "All accounts"]
+    when nil, "", "cash"
+      [@accounts.select { |a| LIQUID_KINDS.include?(a.kind) }, "Cash"]
+    else
+      account = @accounts.detect { |a| a.id.to_s == params[:account] }
+      account ? [[ account ], account.name] : [@accounts.select { |a| LIQUID_KINDS.include?(a.kind) }, "Cash"]
+    end
+  end
 
   # Actual combined daily balance for the trailing HISTORY_DAYS.
   def balance_history(accounts)

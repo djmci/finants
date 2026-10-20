@@ -10,5 +10,17 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     sign_in_as users(:one)
     get root_url
     assert_response :success
+    assert_match "Cashflow forecast — Cash", response.body
+  end
+
+  test "index supports net-worth and per-account scopes" do
+    sign_in_as users(:one)
+    get root_url(account: "all")
+    assert_response :success
+    assert_match "Cashflow forecast — All accounts", response.body
+
+    get root_url(account: accounts(:everyday).id)
+    assert_response :success
+    assert_match "Cashflow forecast — Everyday", response.body
   end
 end

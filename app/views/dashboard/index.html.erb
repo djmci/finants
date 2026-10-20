@@ -38,12 +38,14 @@
   <div class="card card-border bg-base-100">
     <div class="card-body gap-3">
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Balance forecast<%= " — #{@forecast_account.name}" if @forecast_account %></h2>
+        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Cashflow forecast — <%= @scope_label %></h2>
         <div class="flex items-center gap-1">
           <%= form_with url: root_path, method: :get, local: true, class: "flex items-center gap-1" do %>
             <%= hidden_field_tag :months, @months %>
-            <%= select_tag :account, options_for_select([ [ "All accounts", "" ] ] + @accounts.map { |a| [ a.name, a.id ] }, params[:account]),
-                onchange: "this.form.requestSubmit()", class: "select select-sm w-40" %>
+            <%= select_tag :account, options_for_select(
+                  [ [ "Cash (liquid accounts)", "cash" ], [ "All accounts (net worth)", "all" ] ] + @accounts.map { |a| [ a.name, a.id ] },
+                  params[:account].presence || "cash"),
+                onchange: "this.form.requestSubmit()", class: "select select-sm w-52" %>
           <% end %>
           <div class="join">
             <% [ 3, 6, 12 ].each do |m| %>
@@ -57,6 +59,7 @@
       <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
         <span class="text-base-content/70">Projected <%= @projection.last&.first&.strftime("%-d %b %Y") %>: <strong><%= signed_money(@projection.last&.last || 0) %></strong></span>
         <span class="text-base-content/70">Lowest point: <strong class="<%= "text-error" if @floor && @floor.last.negative? %>"><%= signed_money(@floor&.last || 0) %></strong> on <%= @floor&.first&.strftime("%-d %b %Y") %></span>
+        <span class="text-base-content/70">Net cashflow: <strong class="<%= @net_flow.negative? ? "text-error" : "text-success" %>"><%= signed_money(@net_flow) %>/mo</strong> <span class="text-xs">(recurring + historical spend)</span></span>
       </div>
     </div>
   </div>

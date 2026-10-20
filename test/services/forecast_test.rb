@@ -54,6 +54,20 @@ class ForecastTest < ActiveSupport::TestCase
     assert_equal pts.first.last, pts.last.last
   end
 
+  test "historical rows matching a transfer rule are not discretionary spend" do
+    loan = Account.create!(name: "Loan", kind: "loan", opening_balance_cents: -50000000)
+    rule = RecurringRule.create!(payee: "Loan Payment", account: @account,
+                                 to_account: loan, kind: "transfer",
+                                 amount_cents: 300000, frequency: "monthly", every: 1,
+                                 start_on: Date.new(2026, 1, 10))
+    # Unpaired historical repayment leg — matches the transfer rule.
+    Transaction.create!(account: @account, posted_on: Date.new(2026, 1, 1) - 10,
+                        payee: "Loan Payment TO: 102-431558-259", amount_cents: -300000)
+    f = Forecast.new(accounts: [ @account ], rules: [ rule ])
+    pts = f.series(Date.new(2026, 1, 1)..Date.new(2026, 1, 9))[@account]
+    assert pts.all? { |_, v| v == pts.first.last }, "rule-matched spend must not drift the projection"
+  end
+
   test "minimum finds the lowest projected point" do
     rule = RecurringRule.create!(payee: "RENT", account: @account, kind: "expense",
                                  amount_cents: 200000, frequency: "monthly", every: 1,
