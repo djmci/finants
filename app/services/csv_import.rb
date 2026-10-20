@@ -21,14 +21,14 @@ class CsvImport
       mapping: { "date" => "Date", "payee" => "Description", "amount" => "Amount", "sign" => "flip" }
     },
     "hsbc" => {
-      # xlsx extract format: Transaction Date/Detail/Amount/Balance.
-      # Online CSV export uses debit/credit pairs — heuristics fill those.
+      # Online CSV: " Transaction Date,Description,Amount,Balance," (BOM
+      # + leading space + trailing empty column, cleaned on parse).
+      # xlsx extract: Transaction Date/Detail/Amount/Balance.
       label: "HSBC",
-      match: ->(h) { h == [ "transaction date", "transaction detail", "transaction amount", "balance" ] ||
+      match: ->(h) { (h.include?("transaction date") && h.include?("balance")) ||
                      (h.any? { |c| c.match?(/debit|withdrawal/) } &&
                       h.any? { |c| c.match?(/credit|deposit/) }) },
-      mapping: { "date" => "Transaction Date", "payee" => "Transaction Detail",
-                 "amount" => "Transaction Amount", "sign" => "as_is" }
+      mapping: { "date" => "Transaction Date", "sign" => "as_is" }
     },
     "qudos" => {
       label: "Qudos Bank",
@@ -43,13 +43,19 @@ class CsvImport
   attr_reader :headers, :rows, :sheet_name
 
   def initialize(payload, sheet: nil)
-    @payload = payload.to_s.b
+    @payload = payload.to_s.b.delete_prefix("\xEF\xBB\xBF".b)
     if xlsx?
       load_xlsx(sheet)
     else
       table = CSV.parse(@payload, headers: true, skip_blanks: true)
-      @headers = table.headers.compact
-      @rows = table.map { |r| @headers.index_with { |h| r[h] } }
+      raw = table.headers
+      cleaned = raw.map { |h| h.to_s.dup.force_encoding(Encoding::UTF_8).sub(/\A\xEF\xBB\xBF|\uFEFF/, "").strip }
+      @headers = cleaned.reject(&:empty?)
+      @rows = table.map do |r|
+        row = {}
+        cleaned.each_with_index { |h, i| row[h] = r[raw[i]] if h.present? }
+        row
+      end
     end
     raise ParseError, "No header row found" if @headers.empty?
   rescue CSV::MalformedCSVError, Zip::Error => e
@@ -68,17 +74,21 @@ class CsvImport
   end
 
   # Prefill a column mapping for the given headers — preset first,
-  # then generic column-name heuristics.
+  # heuristic fallback per missing/unknown column.
   def self.suggest(headers, format = nil)
     mapping = format ? PRESETS.dig(format, :mapping)&.dup || {} : {}
     guess = ->(patterns) { headers.find { |h| patterns.any? { |p| h.strip.match?(p) } } }
+    %w[date payee amount debit credit balance].each do |k|
+      mapping[k] = nil if mapping[k].present? && !headers.include?(mapping[k])
+    end
     mapping["date"]   ||= guess.call([ /\Adate\z/i, /date/i ])
-    mapping["payee"]  ||= guess.call([ /desc|narrative|payee|details|merchant/i ])
+    mapping["payee"]  ||= guess.call([ /desc|narrative|payee|detail|merchant/i ])
     mapping["debit"]  ||= guess.call([ /debit|withdrawal|paid out/i ])
     mapping["credit"] ||= guess.call([ /credit|deposit|paid in/i ])
     unless mapping["debit"].present? && mapping["credit"].present?
       mapping["amount"] ||= guess.call([ /amount/i ])
     end
+    mapping["balance"] ||= guess.call([ /balance|closing/i ])
     mapping["sign"] ||= "as_is"
     mapping.compact
   end
@@ -93,7 +103,7 @@ class CsvImport
     end
   end
 
-  def commit(import, mapping)
+  def commit(import, mapping, set_balance: false)
     existing = Transaction.where(account: import.account).where.not(import_hash: nil)
                           .pluck(:import_hash).to_set
     created = 0
@@ -114,10 +124,23 @@ class CsvImport
         )
         created += 1
       end
+      reconcile_balance!(import.account, mapping) if set_balance && mapping["balance"].present?
       import.update!(status: "committed", rows_count: created, mapping: mapping,
                      source_format: self.class.detect(headers) || "custom")
     end
     { created:, dupes: rows.size - created }
+  end
+
+  # Sets the account's opening balance so that opening + file txns lands
+  # exactly on the balance stated by the newest row in the file.
+  def reconcile_balance!(account, mapping)
+    parsed = rows.map { |r| parse_row(r, mapping) }.reject { |p| p[:error] }
+    newest = parsed.max_by { |p| p[:posted_on] }
+    return unless newest
+    stated = parse_money(newest[:raw][mapping["balance"]])
+    return unless stated
+    total = parsed.sum { |p| p[:amount_cents] }
+    account.update!(opening_balance_cents: stated - total)
   end
 
   def parse_row(raw, mapping)

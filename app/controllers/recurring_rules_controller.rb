@@ -7,7 +7,10 @@ class RecurringRulesController < ApplicationController
                     .group_by { |o| o[:rule].id }
                     .transform_values { |os| os.first[:on] }
     @edit_rule = RecurringRule.find_by(id: params[:edit])
+    @new_rule = RecurringRule.new(prefill_params) if params[:new].present?
     @accounts = Account.active.order(:name)
+    @suggestions = RecurringSuggestions.call unless @archived
+    @accounts_by_id = @accounts.index_by(&:id)
     @categories = Category.active.order(:kind, :name)
   end
 
@@ -44,5 +47,10 @@ class RecurringRulesController < ApplicationController
   def rule_params
     params.require(:recurring_rule).permit(:payee, :account_id, :category_id,
       :to_account_id, :kind, :amount, :frequency, :every, :start_on, :end_on)
+  end
+
+  def prefill_params
+    params.fetch(:prefill, {}).permit(:payee, :account_id, :kind, :amount,
+      :frequency, :every, :start_on)
   end
 end

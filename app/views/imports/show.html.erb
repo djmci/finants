@@ -31,7 +31,7 @@
               <%= select_tag "mapping[sheet]", options_for_select(@csv.sheets.map { |s| [ s, s ] }, @csv.sheet_name), id: "mapping_sheet", class: "select select-sm w-full" %>
             </div>
           <% end %>
-          <% { "date" => "Date", "payee" => "Payee / description", "amount" => "Amount (signed)", "debit" => "Debit", "credit" => "Credit" }.each do |key, label| %>
+          <% { "date" => "Date", "payee" => "Payee / description", "amount" => "Amount (signed)", "debit" => "Debit", "credit" => "Credit", "balance" => "Balance (for reconcile)" }.each do |key, label| %>
             <div class="fieldset">
               <%= label_tag "mapping_#{key}", label, class: "label" %>
               <%= select_tag "mapping[#{key}]", options_for_select([ [ "—", "" ] ] + cols.map { |c| [ c, c ] }, @mapping[key]), id: "mapping_#{key}", class: "select select-sm w-full" %>
@@ -41,8 +41,14 @@
             <%= label_tag "mapping_sign", "Amount sign", class: "label" %>
             <%= select_tag "mapping[sign]", options_for_select([ [ "As exported", "as_is" ], [ "Flip (spend shown positive)", "flip" ] ], @mapping["sign"]), id: "mapping_sign", class: "select select-sm w-full" %>
           </div>
-          <div class="col-span-full flex items-center gap-2">
+          <div class="col-span-full flex items-center gap-3 flex-wrap">
             <%= submit_tag "Preview", class: "btn btn-sm", formmethod: :get %>
+            <% if @mapping["balance"].present? %>
+              <label class="flex items-center gap-2 text-sm cursor-pointer">
+                <%= check_box_tag :set_balance, "1", true, class: "checkbox checkbox-sm" %>
+                Set opening balance so the file's newest balance matches
+              </label>
+            <% end %>
             <%= submit_tag "Commit import", class: "btn btn-primary btn-sm", formaction: commit_import_path(@import), formmethod: :post, data: { turbo_confirm: "Commit #{@preview&.count { |r| !r[:duplicate] && !r[:error] }} new transactions?" } %>
           </div>
         <% end %>

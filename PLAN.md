@@ -149,6 +149,11 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
   substring of txn payee, longest wins). Covers manual entry + imports.
 - `/recurring_rules` drawer CRUD + next-occurrence column; ↻ badge on
   matched transactions; dashboard "Upcoming — next 30 days" panel.
+- `RecurringSuggestions`: groups txns by account + ref-stripped payee
+  key (digit-bearing tokens dropped), detects weekly/fortnightly/
+  monthly/quarterly/half-yearly/yearly by median date-gap ≥3
+  occurrences, suggests rule payee = longest common prefix; prefilled
+  "Add" on the rules page, skips payees already ruled.
 - Tests: occurrence math (clamp, intervals, mid-range anchor, end_on),
   match_for, auto-link — 68 runs green.
 

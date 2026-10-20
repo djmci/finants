@@ -60,6 +60,37 @@
         </tbody>
       </table>
     </div>
+
+    <% if @suggestions&.any? %>
+      <div class="card card-border bg-base-100 overflow-x-auto">
+        <div class="border-b border-base-300 px-4 py-2.5">
+          <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Detected from your transactions</h2>
+        </div>
+        <table class="table">
+          <thead>
+            <tr class="text-xs text-base-content/50"><th>Payee</th><th class="hidden sm:table-cell">Account</th><th>Pattern</th><th class="text-right">Amount</th><th class="hidden sm:table-cell">Seen</th><th class="w-20"></th></tr>
+          </thead>
+          <tbody>
+            <% @suggestions.each do |s| %>
+              <tr class="hover:bg-base-200/50">
+                <td class="font-medium max-w-64 truncate"><%= s[:payee] %></td>
+                <td class="hidden sm:table-cell text-base-content/70"><%= @accounts_by_id[s[:account_id]]&.name %></td>
+                <td class="text-base-content/70">~every <%= s[:frequency] == "monthly" && s[:every] > 1 ? "#{s[:every]} months" : s[:frequency] %></td>
+                <td class="text-right"><%= signed_money s[:amount_cents] %></td>
+                <td class="hidden sm:table-cell text-base-content/70"><%= s[:count] %>×, last <%= s[:last_on].strftime("%-d %b") %></td>
+                <td class="text-right w-20">
+                  <%= link_to recurring_rules_path(new: 1, prefill: {
+                        payee: s[:payee].truncate(40), account_id: s[:account_id],
+                        kind: s[:kind], amount: s[:amount_cents].abs / 100.0,
+                        frequency: s[:frequency], every: s[:every], start_on: s[:next_on]
+                      }), class: "btn btn-primary btn-soft btn-xs" do %>Add<% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
   </div>
 
   <div class="drawer-side z-50">
@@ -69,7 +100,7 @@
         <h2 class="font-bold text-lg"><%= editing ? "Edit rule" : "New rule" %></h2>
         <label for="rule-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
       </div>
-      <%= render "form", rule: @edit_rule || RecurringRule.new(start_on: Date.current, frequency: "monthly", kind: "expense"), accounts: @accounts, categories: @categories %>
+      <%= render "form", rule: @edit_rule || @new_rule || RecurringRule.new(start_on: Date.current, frequency: "monthly", kind: "expense"), accounts: @accounts, categories: @categories %>
     </div>
   </div>
 </div>
