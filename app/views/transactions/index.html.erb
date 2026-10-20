@@ -1,0 +1,95 @@
+<% content_for :title, "Transactions — Finants" %>
+
+<% editing = @edit_txn.present? %>
+<div class="drawer drawer-end">
+  <input id="txn-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= editing || params[:new].present? %>" />
+  <input id="transfer-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= params[:transfer].present? %>" />
+
+  <div class="drawer-content space-y-4">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <h1 class="font-bold text-xl">Transactions<% if @uncategorised_count.positive? %> <span class="badge badge-warning badge-soft badge-sm"><%= @uncategorised_count %> uncategorised</span><% end %></h1>
+      <div class="flex items-center gap-2">
+        <label for="transfer-drawer" class="btn btn-ghost btn-sm"><%= icon "transfer" %> Transfer</label>
+        <% if editing %>
+          <%= link_to transactions_path(new: 1, account: params[:account], owner: params[:owner]), class: "btn btn-primary btn-sm" do %><%= icon "plus" %> New transaction<% end %>
+        <% else %>
+          <label for="txn-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> Transaction</label>
+        <% end %>
+      </div>
+    </div>
+
+    <%= form_with url: transactions_path, method: :get, class: "flex items-center gap-2 flex-wrap" do %>
+      <%= select_tag :account, options_for_select([ [ "All accounts", "" ] ] + @accounts.map { |a| [ a.name, a.id ] }, params[:account]), class: "select select-sm" %>
+      <%= select_tag :owner, options_for_select([ [ "Everyone", "" ], [ "Joint", "joint" ] ] + @members.map { |u| [ u.name, u.id ] }, params[:owner]), class: "select select-sm" %>
+      <%= search_field_tag :q, params[:q], placeholder: "Search payee…", class: "input input-sm w-44" %>
+      <label class="label cursor-pointer gap-1.5 text-sm">
+        <%= check_box_tag :uncategorised, 1, params[:uncategorised].present?, class: "checkbox checkbox-sm" %>
+        Uncategorised
+      </label>
+      <%= submit_tag "Filter", class: "btn btn-sm" %>
+      <% if params.values_at(:account, :owner, :q, :uncategorised).any?(&:present?) %>
+        <%= link_to "Clear", transactions_path, class: "btn btn-ghost btn-sm" %>
+      <% end %>
+    <% end %>
+
+    <div class="card card-border bg-base-100 overflow-x-auto">
+      <table class="table">
+        <thead>
+          <tr class="text-xs text-base-content/50"><th>Date</th><th>Payee</th><th class="hidden sm:table-cell">Account</th><th class="hidden sm:table-cell">Category</th><th class="text-right">Amount</th><th class="w-12"></th></tr>
+        </thead>
+        <tbody>
+          <% @transactions.each do |txn| %>
+            <tr class="hover:bg-base-200/50">
+              <td class="whitespace-nowrap text-base-content/70"><%= txn.posted_on.strftime("%-d %b %Y") %></td>
+              <td>
+                <span class="font-medium"><%= txn.payee.presence || "—" %></span>
+                <% if txn.transfer? %><span class="badge badge-ghost badge-xs ml-1">transfer</span><% end %>
+              </td>
+              <td class="hidden sm:table-cell text-base-content/70"><%= txn.account.name %></td>
+              <td class="hidden sm:table-cell">
+                <% if txn.category %>
+                  <span class="badge badge-soft badge-xs"><%= txn.category.display_name %></span>
+                <% else %>
+                  <span class="badge badge-warning badge-soft badge-xs">uncategorised</span>
+                <% end %>
+              </td>
+              <td class="text-right"><%= signed_money txn.amount_cents %></td>
+              <td class="text-right whitespace-nowrap w-12">
+                <%= link_to transactions_path(edit: txn.id, account: params[:account], owner: params[:owner], q: params[:q], uncategorised: params[:uncategorised]), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
+                  <%= icon "edit", class: "size-4" %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+          <% if @transactions.empty? %>
+            <tr><td colspan="6" class="text-center text-base-content/50 py-8">No transactions found.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="drawer-side z-50">
+    <label for="txn-drawer" aria-label="close drawer" class="drawer-overlay"></label>
+    <div class="bg-base-100 min-h-full w-full sm:w-96 p-5 border-l border-base-300 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg"><%= editing ? "Edit transaction" : "New transaction" %></h2>
+        <label for="txn-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
+      </div>
+      <%= render "form", txn: @edit_txn || Transaction.new(posted_on: Date.current), accounts: @accounts, categories: @categories %>
+    </div>
+  </div>
+</div>
+
+<div class="drawer drawer-end">
+  <div class="drawer-side z-50">
+    <label for="transfer-drawer" aria-label="close drawer" class="drawer-overlay"></label>
+    <div class="bg-base-100 min-h-full w-full sm:w-96 p-5 border-l border-base-300 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg">Transfer between accounts</h2>
+        <label for="transfer-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
+      </div>
+      <%= render "transfer_form", accounts: @accounts %>
+    </div>
+  </div>
+</div>

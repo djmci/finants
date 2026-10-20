@@ -10,9 +10,45 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_20_030000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_20_030256) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "accounts", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "kind", default: "everyday", null: false
+    t.string "currency", default: "AUD", null: false
+    t.integer "opening_balance_cents", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.bigint "owner_id"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["owner_id"], name: "index_accounts_on_owner_id"
+  end
+
+  create_table "categories", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "kind", default: "expense", null: false
+    t.bigint "parent_id"
+    t.string "colour"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["parent_id"], name: "index_categories_on_parent_id"
+  end
+
+  create_table "imports", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "account_id"
+    t.string "filename"
+    t.string "source_format"
+    t.integer "rows_count", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_imports_on_account_id"
+    t.index ["user_id"], name: "index_imports_on_user_id"
+  end
 
   create_table "sessions", force: :cascade do |t|
     t.bigint "user_id", null: false
@@ -21,6 +57,28 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_030000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "transactions", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "category_id"
+    t.bigint "import_id"
+    t.bigint "user_id"
+    t.date "posted_on", null: false
+    t.string "payee"
+    t.integer "amount_cents", null: false
+    t.text "notes"
+    t.string "transfer_pair_id"
+    t.string "import_hash"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id", "import_hash"], name: "index_transactions_on_account_id_and_import_hash", unique: true, where: "(import_hash IS NOT NULL)"
+    t.index ["account_id"], name: "index_transactions_on_account_id"
+    t.index ["category_id"], name: "index_transactions_on_category_id"
+    t.index ["import_id"], name: "index_transactions_on_import_id"
+    t.index ["posted_on"], name: "index_transactions_on_posted_on"
+    t.index ["transfer_pair_id"], name: "index_transactions_on_transfer_pair_id"
+    t.index ["user_id"], name: "index_transactions_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -33,5 +91,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_030000) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "accounts", "users", column: "owner_id"
+  add_foreign_key "categories", "categories", column: "parent_id"
+  add_foreign_key "imports", "accounts"
+  add_foreign_key "imports", "users"
   add_foreign_key "sessions", "users"
+  add_foreign_key "transactions", "accounts"
+  add_foreign_key "transactions", "categories"
+  add_foreign_key "transactions", "imports"
+  add_foreign_key "transactions", "users"
 end

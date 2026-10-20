@@ -67,15 +67,20 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
 - [x] `.devin/skills/finants/SKILL.md`
 - [x] GitHub repo `djmci/finants` (private) + initial push
 
-## Phase 1 — domain core [ ]
+## Phase 1 — domain core [x]
 
-- Models: Account, Category, Transaction (+transfer pairing), Import.
+- Models: Account, Category, Transaction (+transfer pairing), Import
+  (table + FKs now, importer UI in phase 3).
 - CRUD in anthill's right-drawer pattern (`drawer drawer-end` +
-  `redirect_back_to_page`).
-- Account show: running balance, transaction list, filters.
-- Uncategorised worklist page.
-- Fixtures + model tests (transfer pairing, balance math, category
-  validation).
+  `redirect_back_to_page`, `drawer_open` Stimulus).
+- `DollarField` concern: form-facing dollars over `*_cents` columns.
+- Account show: running balance column, payee search, uncategorised
+  filter, txn drawer.
+- Transactions index: account/owner/payee/uncategorised filters +
+  transfer drawer (paired signed txns).
+- Dashboard: account cards + uncategorised count.
+- Fixtures + model/request tests (transfer pairing, balance math,
+  category nesting, direction sign, auth redirects) — 40 runs green.
 
 ## Phase 2 — UI shell [ ]
 

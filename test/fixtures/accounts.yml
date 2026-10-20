@@ -1,0 +1,29 @@
+everyday:
+  name: Everyday
+  kind: everyday
+  currency: AUD
+  opening_balance_cents: 100000
+  active: true
+  owner: one
+
+savings:
+  name: Savings
+  kind: savings
+  currency: AUD
+  opening_balance_cents: 500000
+  active: true
+
+amex:
+  name: Amex
+  kind: credit
+  currency: AUD
+  opening_balance_cents: 0
+  active: true
+  owner: two
+
+old_account:
+  name: Old Account
+  kind: everyday
+  currency: AUD
+  opening_balance_cents: 0
+  active: false

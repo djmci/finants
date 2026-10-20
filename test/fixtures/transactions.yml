@@ -1,0 +1,22 @@
+pay:
+  account: everyday
+  posted_on: 2026-10-01
+  payee: Employer
+  amount_cents: 500000
+  category: salary
+  user: one
+
+groceries:
+  account: everyday
+  posted_on: 2026-10-05
+  payee: Woolworths
+  amount_cents: -8540
+  category: food
+  user: one
+
+mystery_spend:
+  account: amex
+  posted_on: 2026-10-10
+  payee: UNKNOWN MERCHANT
+  amount_cents: -4299
+  user: two

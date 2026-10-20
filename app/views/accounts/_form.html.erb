@@ -1,0 +1,29 @@
+<%= form_with model: account, class: "space-y-4" do |f| %>
+  <div class="fieldset">
+    <%= f.label :name, class: "label" %>
+    <%= f.text_field :name, required: true, autofocus: true, class: "input w-full" %>
+  </div>
+  <div class="fieldset">
+    <%= f.label :kind, class: "label" %>
+    <%= f.select :kind, Account::KINDS.map { |k| [ k.humanize, k ] }, {}, class: "select w-full" %>
+  </div>
+  <div class="fieldset">
+    <%= f.label :owner_id, "Owner", class: "label" %>
+    <%= f.select :owner_id, options_for_select([ [ "Joint", "" ] ] + User.order(:name).map { |u| [ u.name, u.id ] }, account.owner_id), {}, class: "select w-full" %>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div class="fieldset">
+      <%= f.label :currency, class: "label" %>
+      <%= f.text_field :currency, value: account.currency.presence || "AUD", class: "input w-full" %>
+    </div>
+    <div class="fieldset">
+      <%= f.label :opening_balance, "Opening balance", class: "label" %>
+      <%= f.number_field :opening_balance, step: "0.01", class: "input w-full" %>
+    </div>
+  </div>
+  <div class="fieldset">
+    <%= f.label :notes, class: "label" %>
+    <%= f.text_area :notes, rows: 2, class: "textarea w-full" %>
+  </div>
+  <%= f.submit account.persisted? ? "Save account" : "Add account", class: "btn btn-primary w-full" %>
+<% end %>

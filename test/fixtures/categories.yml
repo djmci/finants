@@ -1,0 +1,20 @@
+salary:
+  name: Salary
+  kind: income
+  active: true
+
+food:
+  name: Food
+  kind: expense
+  active: true
+
+eating_out:
+  name: Eating Out
+  kind: expense
+  parent: food
+  active: true
+
+utilities:
+  name: Utilities
+  kind: expense
+  active: true

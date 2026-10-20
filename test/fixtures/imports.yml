@@ -1,0 +1,6 @@
+batch_one:
+  user: one
+  account: everyday
+  filename: export.csv
+  source_format: hsbc
+  rows_count: 1

@@ -1,0 +1,73 @@
+<% content_for :title, "Categories — Finants" %>
+
+<% editing = @edit_category.present? %>
+<div class="drawer drawer-end">
+  <input id="category-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= editing || params[:new].present? %>" />
+
+  <div class="drawer-content space-y-4">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <h1 class="font-bold text-xl">Categories</h1>
+      <% if editing %>
+        <%= link_to categories_path(new: 1), class: "btn btn-primary btn-sm" do %><%= icon "plus" %> New category<% end %>
+      <% else %>
+        <label for="category-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> New category</label>
+      <% end %>
+    </div>
+
+    <% Category::KINDS.each do |kind| %>
+      <div class="card card-border bg-base-100 overflow-x-auto">
+        <div class="border-b border-base-300 px-4 py-2">
+          <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60"><%= kind.humanize %></h2>
+        </div>
+        <table class="table">
+          <tbody>
+            <% @grouped[kind].each do |parent, subs| %>
+              <tr class="hover:bg-base-200/50">
+                <td class="font-medium">
+                  <% if parent.colour.present? %><span class="inline-block size-2.5 rounded-full mr-1.5 align-middle" style="background: <%= parent.colour %>"></span><% end %>
+                  <%= parent.name %>
+                </td>
+                <td class="text-base-content/60"><%= parent.transactions.size %> txns</td>
+                <td class="text-right whitespace-nowrap w-24">
+                  <div class="flex items-center justify-end">
+                    <% if parent.active? %>
+                      <%= button_to archive_category_path(parent), class: "btn btn-ghost btn-circle btn-sm", title: "Archive" do %><%= icon "archive", class: "size-4" %><% end %>
+                    <% else %>
+                      <%= button_to unarchive_category_path(parent), class: "btn btn-ghost btn-circle btn-sm", title: "Restore" do %><%= icon "unarchive", class: "size-4" %><% end %>
+                    <% end %>
+                    <%= link_to categories_path(edit: parent.id), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %><%= icon "edit", class: "size-4" %><% end %>
+                  </div>
+                </td>
+              </tr>
+              <% subs.each do |sub| %>
+                <tr class="hover:bg-base-200/50">
+                  <td class="pl-8 text-base-content/80"><%= sub.name %></td>
+                  <td class="text-base-content/60"><%= sub.transactions.size %> txns</td>
+                  <td class="text-right whitespace-nowrap w-24">
+                    <div class="flex items-center justify-end">
+                      <%= link_to categories_path(edit: sub.id), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %><%= icon "edit", class: "size-4" %><% end %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+            <% if @grouped[kind].empty? %>
+              <tr><td colspan="3" class="text-center text-base-content/50 py-6">No <%= kind %> categories yet.</td></tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="drawer-side z-50">
+    <label for="category-drawer" aria-label="close drawer" class="drawer-overlay"></label>
+    <div class="bg-base-100 min-h-full w-full sm:w-96 p-5 border-l border-base-300 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg"><%= editing ? "Edit category" : "New category" %></h2>
+        <label for="category-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
+      </div>
+      <%= render "form", category: @edit_category || Category.new, parents: @parents %>
+    </div>
+  </div>
+</div>

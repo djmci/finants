@@ -1,0 +1,25 @@
+<%= form_with url: transfer_path, class: "space-y-4" do |f| %>
+  <div class="fieldset">
+    <%= f.label :posted_on, "Date", class: "label" %>
+    <%= f.date_field :posted_on, value: Date.current, required: true, class: "input w-full" %>
+  </div>
+  <div class="fieldset">
+    <%= f.label :amount, class: "label" %>
+    <%= f.number_field :amount, step: "0.01", min: "0.01", required: true, autofocus: true, class: "input w-full" %>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div class="fieldset">
+      <%= f.label :from_account_id, "From", class: "label" %>
+      <%= f.collection_select :from_account_id, accounts, :id, :name, {}, class: "select w-full" %>
+    </div>
+    <div class="fieldset">
+      <%= f.label :to_account_id, "To", class: "label" %>
+      <%= f.collection_select :to_account_id, accounts, :id, :name, {}, class: "select w-full" %>
+    </div>
+  </div>
+  <div class="fieldset">
+    <%= f.label :notes, class: "label" %>
+    <%= f.text_area :notes, rows: 2, class: "textarea w-full" %>
+  </div>
+  <%= f.submit "Record transfer", class: "btn btn-primary w-full" %>
+<% end %>

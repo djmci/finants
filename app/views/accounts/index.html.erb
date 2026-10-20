@@ -1,0 +1,73 @@
+<% content_for :title, "Accounts — Finants" %>
+
+<% editing = @edit_account.present? %>
+<div class="drawer drawer-end">
+  <input id="account-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= editing || params[:new].present? %>" />
+
+  <div class="drawer-content space-y-4">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <h1 class="font-bold text-xl">Accounts</h1>
+      <% if editing %>
+        <%= link_to accounts_path(new: 1, archived: params[:archived]), class: "btn btn-primary btn-sm" do %><%= icon "plus" %> New account<% end %>
+      <% else %>
+        <label for="account-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> New account</label>
+      <% end %>
+    </div>
+
+    <div class="card card-border bg-base-100 overflow-x-auto">
+      <div class="flex items-center border-b border-base-300 px-1">
+        <div role="tablist" class="tabs tabs-border flex-nowrap">
+          <%= link_to "Active", accounts_path, role: "tab",
+              class: "tab py-2 whitespace-nowrap #{@archived ? "" : "tab-active"}" %>
+          <%= link_to "Archived", accounts_path(archived: 1), role: "tab",
+              class: "tab py-2 whitespace-nowrap #{@archived ? "tab-active" : ""}" %>
+        </div>
+      </div>
+      <table class="table">
+        <thead>
+          <tr class="text-xs text-base-content/50"><th>Name</th><th>Kind</th><th>Owner</th><th class="text-right">Balance</th><th class="w-20"></th></tr>
+        </thead>
+        <tbody>
+          <% @accounts.each do |account| %>
+            <tr class="hover:bg-base-200/50">
+              <td><%= link_to account.name, account_path(account), class: "link link-hover font-medium" %><% unless account.active? %> <span class="badge badge-ghost badge-xs">archived</span><% end %></td>
+              <td><span class="badge badge-soft badge-xs"><%= account.kind %></span></td>
+              <td class="text-base-content/70"><%= account.owner_label %></td>
+              <td class="text-right"><%= money account.balance_cents %></td>
+              <td class="text-right whitespace-nowrap w-20">
+                <div class="flex items-center justify-end">
+                  <% if account.active? %>
+                    <%= button_to archive_account_path(account), class: "btn btn-ghost btn-circle btn-sm", title: "Archive" do %>
+                      <%= icon "archive", class: "size-4" %>
+                    <% end %>
+                  <% else %>
+                    <%= button_to unarchive_account_path(account), class: "btn btn-ghost btn-circle btn-sm", title: "Restore" do %>
+                      <%= icon "unarchive", class: "size-4" %>
+                    <% end %>
+                  <% end %>
+                  <%= link_to accounts_path(edit: account.id, archived: params[:archived]), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
+                    <%= icon "edit", class: "size-4" %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+          <% if @accounts.empty? %>
+            <tr><td colspan="5" class="text-center text-base-content/50 py-8">No <%= @archived ? "archived " : "" %>accounts yet.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="drawer-side z-50">
+    <label for="account-drawer" aria-label="close drawer" class="drawer-overlay"></label>
+    <div class="bg-base-100 min-h-full w-full sm:w-96 p-5 border-l border-base-300 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg"><%= editing ? "Edit account" : "New account" %></h2>
+        <label for="account-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
+      </div>
+      <%= render "form", account: @edit_account || Account.new %>
+    </div>
+  </div>
+</div>
