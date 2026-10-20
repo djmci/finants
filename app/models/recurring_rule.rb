@@ -31,6 +31,18 @@ class RecurringRule < ApplicationRecord
     kind == "expense" ? -amount_cents.abs : amount_cents.abs
   end
 
+  # Amount normalized to a monthly rate (cents). Once-rules and settles
+  # have no monthly rate — settles estimate from matched actuals.
+  def monthly_cents
+    case frequency
+    when "weekly"      then amount_cents * 52.0 / 12
+    when "fortnightly" then amount_cents * 26.0 / 12
+    when "monthly"     then amount_cents / every
+    when "yearly"      then amount_cents / 12.0
+    else 0
+    end
+  end
+
   # Matches a real transaction: same account, rule's ref-stripped payee
   # key inside the txn's (bank text carries per-txn refs), and same
   # amount — except settle rules, whose payment varies by cycle.

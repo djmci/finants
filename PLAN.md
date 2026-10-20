@@ -174,11 +174,12 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
 - Tests: rule descent, transfer neutrality, discretionary drift,
   rule-link exclusion, floor detection — 73 runs green.
 
-## Phase 6 — health report [ ]
+## Phase 6 — health report [x]
 
-- Computed report page: min projected balance + date, first-negative
-  date, upcoming-bill coverage vs income, income-vs-spend trend,
-  category actual vs estimate.
+- `/health` page: cash now, min projected + date, first-negative date,
+  projected net/month; bill coverage (monthlyized committed vs income,
+  settle estimated from real payments); income-vs-spend trend table;
+  category spend monthlyized over 90d with rule-matched attribution.
 
 ## Phase 7 — ship [ ]
 

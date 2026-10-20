@@ -57,6 +57,7 @@ module ApplicationHelper
     "unarchive"  => '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h2"/><path d="M20 8v11a2 2 0 0 1-2 2h-2"/><path d="m9 15 3-3 3 3"/><path d="M12 12v9"/>',
     "filter"     => '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
     "trending-up" => '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+    "activity"   => '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
     "pause"      => '<rect x="5" y="4" width="5" height="16" rx="1" fill="currentColor" stroke="none"/><rect x="14" y="4" width="5" height="16" rx="1" fill="currentColor" stroke="none"/>',
     "play"       => '<polygon points="6 3 20 12 6 21 6 3" fill="currentColor" stroke="none"/>',
     "search"     => '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',

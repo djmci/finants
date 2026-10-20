@@ -16,6 +16,7 @@ Rails.application.routes.draw do
   resources :transactions, only: [ :index, :create, :update, :destroy ]
   resource :transfer, only: :create
   resource :settings, only: :update
+  resource :health, controller: "health", only: :show
   resources :imports, except: [ :edit, :update ] do
     post :commit, on: :member
   end

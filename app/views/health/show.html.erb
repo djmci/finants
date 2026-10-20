@@ -1,0 +1,89 @@
+<% content_for :title, "Health — Finants" %>
+<% mobile_nav "activity", health_path %>
+
+<div class="space-y-4">
+  <h1 class="font-bold text-xl">Health</h1>
+
+  <div class="stats stats-vertical sm:stats-horizontal card card-border bg-base-100 w-full">
+    <div class="stat">
+      <div class="stat-title">Cash now</div>
+      <div class="stat-value text-2xl"><%= signed_money @report.cash_now %></div>
+      <div class="stat-desc">liquid accounts</div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">Lowest point (12mo)</div>
+      <div class="stat-value text-2xl <%= @report.min_point.last.negative? ? "text-error" : "" %>"><%= signed_money @report.min_point.last %></div>
+      <div class="stat-desc">on <%= @report.min_point.first.strftime("%-d %b %Y") %></div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">First negative</div>
+      <div class="stat-value text-2xl"><%= @report.first_negative&.strftime("%-d %b %Y") || "—" %></div>
+      <div class="stat-desc"><%= @report.first_negative ? "cash goes below zero" : "not projected in 12 months" %></div>
+    </div>
+    <div class="stat">
+      <div class="stat-title">Projected net / month</div>
+      <div class="stat-value text-2xl <%= @report.projected_net_per_month.negative? ? "text-error" : "text-success" %>"><%= signed_money @report.projected_net_per_month %></div>
+      <div class="stat-desc">rules + real spend rate</div>
+    </div>
+  </div>
+
+  <div class="card card-border bg-base-100">
+    <div class="card-body gap-2">
+      <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Bill coverage</h2>
+      <% cov = @report.coverage %>
+      <% if cov %>
+        <progress class="progress <%= cov >= 1 ? "progress-success" : cov >= 0.8 ? "progress-warning" : "progress-error" %> w-full" value="<%= [ cov, 1 ].min * 100 %>" max="100"></progress>
+        <p class="text-sm text-base-content/70">
+          Committed outgoings <strong><%= money @report.monthly_committed.round %>/mo</strong>
+          against recurring income <strong><%= money @report.monthly_income.round %>/mo</strong>
+          — <%= cov >= 1 ? "covered" : "shortfall of #{money (@report.monthly_income - @report.monthly_committed).abs.round}" %>.
+        </p>
+      <% else %>
+        <p class="text-sm text-base-content/50">No committed outgoings yet — add recurring rules.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card card-border bg-base-100 overflow-x-auto">
+      <div class="border-b border-base-300 px-4 py-2.5">
+        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Income vs spend — actuals</h2>
+      </div>
+      <table class="table table-sm">
+        <thead><tr class="text-xs text-base-content/50"><th>Month</th><th class="text-right">In</th><th class="text-right">Out</th><th class="text-right">Net</th></tr></thead>
+        <tbody>
+          <% @report.monthly_trend.each do |m| %>
+            <tr>
+              <td><%= m[:month].strftime("%b %Y") %></td>
+              <td class="text-right text-success"><%= signed_money m[:income_cents] %></td>
+              <td class="text-right"><%= signed_money(-m[:spend_cents]) %></td>
+              <td class="text-right font-medium <%= m[:net_cents].negative? ? "text-error" : "" %>"><%= signed_money m[:net_cents] %></td>
+            </tr>
+          <% end %>
+          <% if @report.monthly_trend.empty? %>
+            <tr><td colspan="4" class="text-center text-base-content/50 py-6">No imported history yet.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card card-border bg-base-100 overflow-x-auto">
+      <div class="border-b border-base-300 px-4 py-2.5">
+        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Where it goes — last 90 days, per month</h2>
+      </div>
+      <table class="table table-sm">
+        <tbody>
+          <% @report.category_spend.each do |name, cents| %>
+            <tr>
+              <td><%= name %></td>
+              <td class="text-right"><%= signed_money(-cents.round) %>/mo</td>
+            </tr>
+          <% end %>
+          <% if @report.category_spend.empty? %>
+            <tr><td class="text-center text-base-content/50 py-6">No spend in the window.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
