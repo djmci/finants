@@ -99,7 +99,7 @@ class CsvImport
     rows.map do |r|
       parsed = parse_row(r, mapping)
       parsed.merge(duplicate: existing.include?(digest(import.account_id, r)),
-                   category: PayeeRule.for(parsed[:payee], amount_cents: parsed[:amount_cents]))
+                   category: PayeeRule.for(parsed[:payee], amount_cents: parsed[:amount_cents], auto_only: true))
     end
   end
 
@@ -119,7 +119,7 @@ class CsvImport
           account: import.account, import: import, user: import.user,
           posted_on: parsed[:posted_on], payee: parsed[:payee],
           amount_cents: parsed[:amount_cents],
-          category: PayeeRule.for(parsed[:payee], amount_cents: parsed[:amount_cents]),
+          category: PayeeRule.for(parsed[:payee], amount_cents: parsed[:amount_cents], auto_only: true),
           import_hash: hash
         )
         created += 1

@@ -7,6 +7,7 @@ Rails.application.routes.draw do
       post :unarchive
     end
   end
+  resources :payee_rules, only: [ :create, :update, :destroy ]
   resources :categories, except: [ :edit, :show, :destroy ] do
     member do
       post :archive

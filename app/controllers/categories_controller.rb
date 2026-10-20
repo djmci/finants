@@ -1,5 +1,6 @@
 class CategoriesController < ApplicationController
   def index
+    @tab = params[:tab].presence_in(%w[expense income rules]) || "expense"
     @archived = params[:archived].present?
     @categories = Category.where(active: !@archived).includes(:children).order(:name)
     @grouped = Category::KINDS.index_with do |kind|
@@ -8,6 +9,8 @@ class CategoriesController < ApplicationController
     end
     @edit_category = Category.find_by(id: params[:edit])
     @parents = Category.active.top_level.order(:kind, :name)
+    @payee_rules = PayeeRule.includes(:category).order(:pattern, :id)
+    @edit_rule = PayeeRule.find_by(id: params[:edit_rule])
   end
 
   # Mini form for inline creation inside a form drawer — or the

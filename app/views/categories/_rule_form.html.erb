@@ -1,0 +1,31 @@
+<%= form_with model: rule, url: rule.persisted? ? payee_rule_path(rule) : payee_rules_path, class: "space-y-4" do |f| %>
+  <div class="fieldset">
+    <%= f.label :pattern, "Payee contains", class: "label" %>
+    <%= f.text_field :pattern, class: "input w-full font-mono text-sm", placeholder: "e.g. WOOLWORTHS" %>
+    <p class="text-xs text-base-content/50">Substring of the ref-stripped payee (ref numbers are ignored).</p>
+  </div>
+  <div class="fieldset">
+    <%= f.label :category_id, "Category", class: "label" %>
+    <%= f.collection_select :category_id, Category.active.order(:kind, :name), :id, :display_name, {}, class: "select w-full" %>
+    <%= render "categories/new_link", select_id: "payee_rule_category_id" %>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div class="fieldset">
+      <%= f.label :direction, "Direction", class: "label" %>
+      <%= f.select :direction, [ [ "Any", "" ], [ "In only", "in" ], [ "Out only", "out" ] ], {}, class: "select w-full" %>
+    </div>
+    <div class="fieldset">
+      <%= f.label :round_amount, "Amount shape", class: "label" %>
+      <%= f.select :round_amount, [ [ "Any", "" ], [ "Round (.00)", "true" ], [ "Non-round", "false" ] ], { selected: rule.round_amount.nil? ? "" : rule.round_amount.to_s }, class: "select w-full" %>
+    </div>
+  </div>
+  <div class="fieldset">
+    <%= f.label :max_amount, "Max amount ($)", class: "label" %>
+    <%= f.number_field :max_amount, value: rule.max_amount_cents ? (rule.max_amount_cents / 100.0) : nil, step: "0.01", min: 0, class: "input w-full", placeholder: "No cap" %>
+  </div>
+  <label class="flex items-center gap-2 cursor-pointer">
+    <%= f.check_box :auto, class: "checkbox checkbox-sm" %>
+    <span class="text-sm">Auto-categorise on import <span class="text-base-content/50">(off = suggestion pills only)</span></span>
+  </label>
+  <div class="pt-2"><%= f.submit class: "btn btn-primary w-full" %></div>
+<% end %>

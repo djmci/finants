@@ -14,7 +14,7 @@ class ApplicationController < ActionController::Base
     uri = URI.parse(request.referer.to_s)
     if uri&.path.present? && (uri.host.nil? || uri.host == request.host)
       query = Rack::Utils.parse_nested_query(uri.query)
-                         .except("edit", "new", "transfer", "edit_txn")
+                         .except("edit", "new", "transfer", "edit_txn", "edit_rule", "new_rule")
       uri.query = query.to_query.presence
       target = uri.request_uri
       target += "##{anchor}" if anchor

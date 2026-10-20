@@ -28,11 +28,14 @@ class PayeeRule < ApplicationRecord
   # amounts only; `max_amount_cents` caps the magnitude, spends only;
   # `direction` requires in/out — e.g. incoming Osko is a payback,
   # outgoing Osko isn't.
-  def self.for(payee, amount_cents: nil)
+  # auto_only: rules allowed to categorise silently at import —
+  # non-auto rules only power the suggestion pills on History.
+  def self.for(payee, amount_cents: nil, auto_only: false)
     key = detection_key(payee)
     raw = normalize(payee)
     return nil if key.blank? && raw.blank?
     matches = includes(:category).select { |r| key.include?(r.pattern) || raw.include?(r.pattern) }
+    matches = matches.select(&:auto) if auto_only
     if amount_cents
       round = (amount_cents % 100).zero?
       direction = amount_cents.negative? ? "out" : "in"
