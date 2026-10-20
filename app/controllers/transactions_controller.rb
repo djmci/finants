@@ -11,6 +11,7 @@ class TransactionsController < ApplicationController
     @members = User.order(:name)
     @uncategorised_count = Transaction.uncategorised.count
     @once_rules = RecurringRule.active.where(frequency: "once").includes(:account).order(:payee)
+    @suggestions = suggest_categories(@transactions.select { |t| t.category_id.nil? })
   end
 
   def create
@@ -53,5 +54,22 @@ class TransactionsController < ApplicationController
   def apply_direction(txn)
     txn.amount_cents = -txn.amount_cents.abs if params.dig(:transaction, :direction) == "expense"
     txn.amount_cents = txn.amount_cents.abs if params.dig(:transaction, :direction) == "income"
+  end
+
+  # {txn_id => Category} — one-click category guesses for uncategorised
+  # rows: learned payee rule → majority category of same-payee siblings
+  # → a category name appearing in the ref-stripped payee.
+  def suggest_categories(uncategorised)
+    return {} if uncategorised.empty?
+    sibling_cats = Transaction.where.not(category_id: nil).includes(:category)
+                              .group_by { |t| PayeeRule.detection_key(t.payee) }
+                              .transform_values { |ts| ts.group_by(&:category).max_by { |_, list| list.size }&.first }
+    names = Category.active.to_a
+    uncategorised.to_h do |t|
+      key = PayeeRule.detection_key(t.payee)
+      guess = PayeeRule.for(t.payee) || sibling_cats[key] ||
+              (names.detect { |c| key.include?(PayeeRule.normalize(c.name)) } if key.present?)
+      [ t.id, guess ]
+    end.compact
   end
 end

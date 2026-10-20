@@ -54,6 +54,16 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "index shows a clickable category guess for uncategorised rows" do
+    sign_in_as users(:one)
+    # A categorised sibling sharing the ref-stripped payee key → guess.
+    Transaction.create!(account: accounts(:everyday), posted_on: Date.current,
+                        payee: "UNKNOWN MERCHANT 991", amount_cents: -100,
+                        category: categories(:food))
+    get transactions_url
+    assert_match "Tag as Food", response.body
+  end
+
   test "update redirects back with an anchor to the edited row" do
     sign_in_as users(:one)
     txn = transactions(:pay)
