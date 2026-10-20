@@ -1,7 +1,7 @@
 class RecurringRule < ApplicationRecord
   include DollarField
 
-  KINDS = %w[expense income transfer].freeze
+  KINDS = %w[expense income transfer settle].freeze
   FREQUENCIES = %w[once weekly fortnightly monthly yearly].freeze
 
   belongs_to :account
@@ -13,27 +13,32 @@ class RecurringRule < ApplicationRecord
   validates :kind, inclusion: { in: KINDS }
   validates :frequency, inclusion: { in: FREQUENCIES }
   validates :every, numericality: { only_integer: true, greater_than: 0 }
-  validates :amount_cents, presence: true, numericality: { other_than: 0 }
-  validates :to_account, presence: true, if: -> { kind == "transfer" }
-  validate :transfer_accounts_differ, if: -> { kind == "transfer" }
+  validates :amount_cents, presence: true, numericality: { other_than: 0 }, unless: :settle?
+  validates :to_account, presence: true, if: -> { kind == "transfer" || kind == "settle" }
+  validate :transfer_accounts_differ, if: -> { kind == "transfer" || kind == "settle" }
   validate :to_account_only_for_transfers
+
+  before_validation { self.amount_cents = 0 if settle? && amount_cents.nil? }
 
   scope :active, -> { where(active: true) }
   scope :ordered, -> { order(:payee) }
 
   dollar_field :amount
 
+  def settle? = kind == "settle"
+
   def signed_amount_cents
     kind == "expense" ? -amount_cents.abs : amount_cents.abs
   end
 
-  # Matches a real transaction: same account, same amount magnitude,
-  # rule payee as substring of the txn payee (normalised, like PayeeRule).
+  # Matches a real transaction: same account, rule payee as substring
+  # of the txn payee (normalised, like PayeeRule), and same amount —
+  # except settle rules, whose payment amount varies by cycle.
   def self.match_for(account:, payee:, amount_cents:)
     norm = PayeeRule.normalize(payee)
     return nil if norm.blank?
     active.where(account: account).select do |r|
-      r.amount_cents.abs == amount_cents.abs &&
+      (r.settle? || r.amount_cents.abs == amount_cents.abs) &&
         norm.include?(PayeeRule.normalize(r.payee))
     end.max_by { |r| r.payee.length }
   end
@@ -59,8 +64,8 @@ class RecurringRule < ApplicationRecord
   end
 
   def to_account_only_for_transfers
-    if to_account_id.present? && kind != "transfer"
-      errors.add(:kind, "must be Transfer when a To account is set")
+    if to_account_id.present? && kind != "transfer" && kind != "settle"
+      errors.add(:kind, "must be Transfer or Balance payment when a To account is set")
     end
   end
 end

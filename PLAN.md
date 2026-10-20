@@ -135,9 +135,12 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
 ## Phase 4 — recurring rules [x]
 
 - `RecurringRule`: payee, account, category, kind (expense/income/
-  transfer — transfer carries `to_account` for the mortgage-repayment
-  pattern), amount, frequency (weekly/fortnightly/monthly/yearly) ×
-  `every` N, start_on, end_on nullable, active (pause/resume).
+  transfer/settle — transfer carries `to_account`; **settle** pays
+  whatever brings the target to zero each cycle, for statement-style
+  card payments), amount, frequency (once/weekly/fortnightly/monthly/
+  yearly) × `every` N, start_on, end_on nullable, active (pause/resume).
+- `once` = planned one-off expense: projects at start_on (today if
+  overdue, dead after end_on), auto-resolves when a txn links.
 - `Recurring` — pure occurrence service: anchored advance (weekly/
   fortnightly by days; monthly clamps day-of-month then resumes anchor
   day; yearly), range-scoped, `end_on` aware.

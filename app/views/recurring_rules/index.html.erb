@@ -34,11 +34,11 @@
         <tbody>
           <% @rules.each do |rule| %>
             <tr class="hover:bg-base-200/50">
-              <td class="font-medium"><%= rule.payee %><% if rule.kind == "transfer" %> <span class="badge badge-ghost badge-xs">→ <%= rule.to_account&.name %></span><% end %></td>
+              <td class="font-medium"><%= rule.payee %><% if rule.kind == "transfer" || rule.settle? %> <span class="badge badge-ghost badge-xs">→ <%= rule.to_account&.name %></span><% end %></td>
               <td class="hidden sm:table-cell text-base-content/70"><%= rule.account.name %></td>
               <td class="text-base-content/70"><%= rule.human_schedule %><% if rule.end_on %> <span class="text-xs">until <%= rule.end_on.strftime("%-d %b %Y") %></span><% end %></td>
               <td class="hidden sm:table-cell"><% if rule.category %><span class="badge badge-soft badge-xs"><%= rule.category.display_name %></span><% end %></td>
-              <td class="text-right"><%= signed_money(rule.signed_amount_cents) %></td>
+              <td class="text-right"><%= rule.settle? ? content_tag(:span, "full balance", class: "text-xs text-base-content/60") : signed_money(rule.signed_amount_cents) %></td>
               <td class="hidden sm:table-cell text-base-content/70"><%= @next[rule.id]&.strftime("%-d %b") || "—" %></td>
               <td class="text-right whitespace-nowrap w-20">
                 <div class="flex items-center justify-end">

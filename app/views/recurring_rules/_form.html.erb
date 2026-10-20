@@ -6,11 +6,12 @@
   <div class="grid grid-cols-2 gap-3">
     <div class="fieldset">
       <%= f.label :kind, "Type", class: "label" %>
-      <%= f.select :kind, [ [ "Spending", "expense" ], [ "Income", "income" ], [ "Transfer", "transfer" ] ], {}, class: "select w-full" %>
+      <%= f.select :kind, [ [ "Spending", "expense" ], [ "Income", "income" ], [ "Transfer", "transfer" ], [ "Balance payment", "settle" ] ], {}, class: "select w-full" %>
     </div>
     <div class="fieldset">
       <%= f.label :amount, class: "label" %>
-      <%= f.number_field :amount, step: "0.01", min: "0.01", required: true, class: "input w-full" %>
+      <%= f.number_field :amount, step: "0.01", min: "0.01", class: "input w-full" %>
+      <p class="text-xs text-base-content/50 mt-1">Leave blank for Balance payment — it pays whatever brings the target to zero.</p>
     </div>
   </div>
   <div class="fieldset">
