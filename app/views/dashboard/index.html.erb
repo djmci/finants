@@ -10,26 +10,18 @@
     <% end %>
   </div>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-    <% @accounts.each do |account| %>
-      <%= link_to account_path(account), class: "card card-border bg-base-100 hover:bg-base-200/50 transition-colors" do %>
-        <div class="card-body p-4">
-          <div class="flex items-center justify-between">
-            <span class="font-medium"><%= account.name %></span>
-            <span class="badge badge-soft badge-xs"><%= account.kind %></span>
-          </div>
-          <div class="flex items-end justify-between">
-            <span class="text-2xl font-semibold"><%= money account.balance_cents %></span>
-            <span class="text-xs text-base-content/50"><%= account.owner_label %></span>
-          </div>
-        </div>
-      <% end %>
-    <% end %>
-    <% if @accounts.empty? %>
-      <div class="card card-border bg-base-100 sm:col-span-2 lg:col-span-3">
-        <div class="card-body items-center text-center py-10">
-          <%= ant_icon size: 40 %>
-          <p class="text-base-content/60">No accounts yet — <%= link_to "add one", accounts_path(new: 1), class: "link link-primary" %> to start tracking.</p>
+  <div class="stats stats-vertical sm:stats-horizontal card card-border bg-base-100 w-full">
+    <% @health.each do |name, h| %>
+      <div class="stat">
+        <div class="stat-title"><%= name %></div>
+        <div class="stat-value text-2xl <%= h[:min].negative? ? "text-error" : "text-success" %>"><%= signed_money h[:min] %></div>
+        <div class="stat-desc">
+          <% if h[:min].negative? %>
+            goes negative <%= h[:min_date].strftime("%-d %b %Y") %>
+          <% else %>
+            stays positive · lowest <%= h[:min_date].strftime("%-d %b") %>
+          <% end %>
+          · ends <%= signed_money h[:end_cents] %>
         </div>
       </div>
     <% end %>
@@ -38,13 +30,13 @@
   <div class="card card-border bg-base-100">
     <div class="card-body gap-3">
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Cashflow forecast — <%= @scope_label %></h2>
+        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Cashflow forecast<%= " — #{@scoped_account.name}" if @scoped_account %></h2>
         <div class="flex items-center gap-1">
           <%= form_with url: root_path, method: :get, local: true, class: "flex items-center gap-1" do %>
             <%= hidden_field_tag :months, @months %>
             <%= select_tag :account, options_for_select(
-                  [ [ "Cashflow", "cash" ], [ "Net worth (all accounts)", "all" ] ] + @accounts.map { |a| [ a.name, a.id ] },
-                  params[:account].presence || "cash"),
+                  [ [ "Cashflow (all liquid)", "" ] ] + @liquid.map { |a| [ a.name, a.id ] },
+                  params[:account]),
                 onchange: "this.form.requestSubmit()", class: "select select-sm w-52" %>
           <% end %>
           <div class="join">
@@ -86,5 +78,30 @@
         </tbody>
       </table>
     </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+    <% @liquid.each do |account| %>
+      <%= link_to account_path(account), class: "card card-border bg-base-100 hover:bg-base-200/50 transition-colors" do %>
+        <div class="card-body p-4">
+          <div class="flex items-center justify-between">
+            <span class="font-medium"><%= account.name %></span>
+            <span class="badge badge-soft badge-xs"><%= account.kind %></span>
+          </div>
+          <div class="flex items-end justify-between">
+            <span class="text-2xl font-semibold"><%= money account.balance_cents %></span>
+            <span class="text-xs text-base-content/50"><%= account.owner_label %></span>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+    <% if @liquid.empty? %>
+      <div class="card card-border bg-base-100 sm:col-span-2 lg:col-span-3">
+        <div class="card-body items-center text-center py-10">
+          <%= ant_icon size: 40 %>
+          <p class="text-base-content/60">No cash accounts yet — <%= link_to "add one", accounts_path(new: 1), class: "link link-primary" %> to start tracking.</p>
+        </div>
+      </div>
+    <% end %>
   </div>
 </div>

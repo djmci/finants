@@ -1,36 +1,35 @@
 class DashboardController < ApplicationController
   HISTORY_DAYS = 90
   LIQUID_KINDS = %w[everyday savings cash].freeze
+  HORIZONS = { "Now" => 1.month, "Near" => 3.months, "Far" => 12.months }.freeze
 
   def index
     @accounts = Account.active.includes(:owner).order(:name)
+    @liquid = @accounts.select { |a| LIQUID_KINDS.include?(a.kind) }
     @uncategorised_count = Transaction.uncategorised.count
     rules = RecurringRule.active.includes(:account, :category, :to_account)
     @upcoming = Recurring.occurrences_for(rules, Date.current..(Date.current + 30))
 
     @months = (params[:months].presence || 6).to_i.clamp(1, 24)
-    scope, @scope_label = forecast_scope
+    @scoped_account = @liquid.detect { |a| a.id.to_s == params[:account] }
+    scope = @scoped_account ? [ @scoped_account ] : @liquid
     forecast = Forecast.new(accounts: scope, rules: rules)
-    @projection = forecast.combined(Date.current..(Date.current + @months.months))
+    full = forecast.combined(Date.current..(Date.current + [ @months, 12 ].max.months))
+    @projection = full.take_while { |d, _| d <= Date.current + @months.months }
     @history = balance_history(scope)
+    @health = HORIZONS.to_h { |name, span| [ name, checkpoint(full, Date.current + span) ] }
     @floor = @projection.min_by(&:last)
-    @net_flow = @projection.any? ? (@projection.last.last - @projection.first.last) / @months : 0
+    @net_flow = @projection.size > 1 ? (@projection.last.last - @projection.first.last) / @months : 0
   end
 
   private
 
-  # Default = cash position (liquid accounts only — liabilities like the
-  # mortgage make the chart useless). account=all → net worth view.
-  def forecast_scope
-    case params[:account]
-    when "all"
-      [@accounts, "Net worth"]
-    when nil, "", "cash"
-      [@accounts.select { |a| LIQUID_KINDS.include?(a.kind) }, "Cashflow"]
-    else
-      account = @accounts.detect { |a| a.id.to_s == params[:account] }
-      account ? [[ account ], account.name] : [@accounts.select { |a| LIQUID_KINDS.include?(a.kind) }, "Cashflow"]
-    end
+  # Bottom line for a horizon: lowest projected point in the window,
+  # its date, and where the window ends.
+  def checkpoint(points, upto)
+    window = points.select { |d, _| d <= upto }
+    date, cents = window.min_by(&:last)
+    { min: cents, min_date: date, end_cents: window.last.last }
   end
 
   # Actual combined daily balance for the trailing HISTORY_DAYS.
