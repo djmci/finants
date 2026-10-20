@@ -1,7 +1,7 @@
 class PayeeRule < ApplicationRecord
   belongs_to :category
 
-  validates :pattern, presence: true, uniqueness: true
+  validates :pattern, presence: true, uniqueness: { scope: :round_amount }
 
   before_validation { self.pattern = self.class.normalize(pattern) }
 
@@ -20,17 +20,25 @@ class PayeeRule < ApplicationRecord
   # Longest matching pattern wins. New rules store ref-stripped
   # detection keys (per-txn refs would never repeat); legacy full-payee
   # patterns still match against the raw normalized payee.
-  def self.for(payee)
+  # `round_amount` rules only apply when the amount ends in .00 (or
+  # doesn't) — e.g. a round AGL bill is the mobile plan, not energy.
+  def self.for(payee, amount_cents: nil)
     key = detection_key(payee)
     raw = normalize(payee)
     return nil if key.blank? && raw.blank?
-    includes(:category)
-      .select { |r| key.include?(r.pattern) || raw.include?(r.pattern) }
-      .max_by { |r| r.pattern.length }&.category
+    matches = includes(:category).select { |r| key.include?(r.pattern) || raw.include?(r.pattern) }
+    if amount_cents
+      round = (amount_cents % 100).zero?
+      exact = matches.select { |r| r.round_amount == round }
+      matches = exact.presence || matches.select { |r| r.round_amount.nil? }.presence || matches
+    end
+    matches.max_by { |r| r.pattern.length }&.category
   end
 
-  def self.learn(payee, category)
+  def self.learn(payee, category, amount_cents = nil)
     return if payee.blank? || category.nil?
-    find_or_initialize_by(pattern: detection_key(payee).presence || normalize(payee)).update!(category:)
+    round = amount_cents && (amount_cents % 100).zero?
+    find_or_initialize_by(pattern: detection_key(payee).presence || normalize(payee),
+                          round_amount: round).update!(category:)
   end
 end

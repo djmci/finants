@@ -58,7 +58,7 @@ class Transaction < ApplicationRecord
   private
 
   def learn_payee_rule
-    PayeeRule.learn(payee, category)
+    PayeeRule.learn(payee, category, amount_cents)
   end
 
   def suggest_rule

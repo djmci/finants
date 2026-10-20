@@ -82,7 +82,7 @@ class TransactionsController < ApplicationController
     names = Category.active.to_a
     uncategorised.to_h do |t|
       key = PayeeRule.detection_key(t.payee)
-      guess = PayeeRule.for(t.payee) || sibling_cats[key] ||
+      guess = PayeeRule.for(t.payee, amount_cents: t.amount_cents) || sibling_cats[key] ||
               (names.detect { |c| key.include?(PayeeRule.normalize(c.name)) } if key.present?)
       [ t.id, guess ]
     end.compact
