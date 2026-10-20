@@ -69,8 +69,12 @@ class HealthReport
   # rule count under the rule's category even if the row is untagged.
   # Settle payments are excluded: paying the card isn't spend — the
   # card's charges already count under their real categories.
+  # Loans excluded: loan-account interest is an accrual entry — it
+  # lengthens the repayment tail, it doesn't move cash. Card charges
+  # still count — that's where the spend happens.
   def category_spend
-    txns = Transaction.where(transfer_pair_id: nil)
+    spend_accounts = Account.active.select { |a| a.kind != "loan" }
+    txns = Transaction.where(account: spend_accounts, transfer_pair_id: nil)
                       .where(posted_on: (@today - DRIFT_DAYS.days)..@today)
                       .includes(:category)
     buckets = Hash.new(0)
