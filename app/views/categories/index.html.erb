@@ -22,20 +22,19 @@
       <% end %>
     </div>
 
-    <div role="tablist" class="tabs tabs-border">
-      <% %w[expense income rules].each do |tab| %>
-        <%= link_to tab.humanize, categories_path(tab:), role: "tab",
-                    class: "tab py-2 whitespace-nowrap #{@tab == tab ? "tab-active" : ""}" %>
-      <% end %>
-    </div>
+    <div class="card card-border bg-base-100 overflow-x-auto">
+      <div class="border-b border-base-300 px-4">
+        <div role="tablist" class="tabs tabs-border flex-nowrap">
+          <% %w[expense income rules].each do |tab| %>
+            <%= link_to tab.humanize, categories_path(tab:), role: "tab",
+                        class: "tab py-2 whitespace-nowrap #{@tab == tab ? "tab-active" : ""}" %>
+          <% end %>
+        </div>
+      </div>
 
     <% if @tab == "rules" %>
-      <div class="card card-border bg-base-100 overflow-x-auto">
-        <div class="border-b border-base-300 px-4 py-2">
-          <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Auto-suggest rules</h2>
-          <p class="text-xs text-base-content/50 pb-1">Matched on ref-stripped payee text. "Auto" rules apply silently on import; the rest only fill the suggestion pills on History.</p>
-        </div>
-        <table class="table table-sm">
+      <p class="text-xs text-base-content/50 px-4 pt-2">Matched on ref-stripped payee text. "Auto" rules apply silently on import; the rest only fill the suggestion pills on History.</p>
+      <table class="table table-sm">
           <tbody>
             <% @payee_rules.each do |rule| %>
               <tr class="hover:bg-base-200/50">
@@ -62,8 +61,7 @@
         </table>
       </div>
     <% else %>
-      <div class="card card-border bg-base-100 overflow-x-auto">
-        <table class="table">
+      <table class="table">
           <tbody>
             <% @grouped[@tab].each do |parent, subs| %>
               <tr class="hover:bg-base-200/50">
