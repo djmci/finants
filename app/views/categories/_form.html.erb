@@ -12,9 +12,5 @@
     <%= f.collection_select :parent_id, parents, :id, :display_name, { include_blank: "None" }, class: "select w-full" %>
     <p class="text-xs text-base-content/50 mt-1">Subcategories must match their parent's kind.</p>
   </div>
-  <div class="fieldset">
-    <%= f.label :colour, class: "label" %>
-    <%= f.color_field :colour, class: "input w-full h-10 p-1" %>
-  </div>
   <%= f.submit category.persisted? ? "Save category" : "Add category", class: "btn btn-primary w-full" %>
 <% end %>
