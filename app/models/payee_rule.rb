@@ -17,15 +17,20 @@ class PayeeRule < ApplicationRecord
     normalize(payee).gsub(/\b\w*\d\w*\b/, "").gsub(/\s+/, " ").strip
   end
 
-  # Longest matching pattern wins; pattern is a substring of the payee.
+  # Longest matching pattern wins. New rules store ref-stripped
+  # detection keys (per-txn refs would never repeat); legacy full-payee
+  # patterns still match against the raw normalized payee.
   def self.for(payee)
-    upcased = normalize(payee)
-    return nil if upcased.blank?
-    includes(:category).select { |r| upcased.include?(r.pattern) }.max_by { |r| r.pattern.length }&.category
+    key = detection_key(payee)
+    raw = normalize(payee)
+    return nil if key.blank? && raw.blank?
+    includes(:category)
+      .select { |r| key.include?(r.pattern) || raw.include?(r.pattern) }
+      .max_by { |r| r.pattern.length }&.category
   end
 
   def self.learn(payee, category)
     return if payee.blank? || category.nil?
-    find_or_initialize_by(pattern: normalize(payee)).update!(category:)
+    find_or_initialize_by(pattern: detection_key(payee).presence || normalize(payee)).update!(category:)
   end
 end
