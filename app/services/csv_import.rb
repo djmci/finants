@@ -149,8 +149,8 @@ class CsvImport
     payee = raw[mapping["payee"]].to_s.strip.presence
     cents = cents_for(raw, mapping)
     error = if posted_on.nil? then "bad date: #{date_raw.inspect}"
-            elsif cents.nil? then "bad amount"
-            end
+    elsif cents.nil? then "bad amount"
+    end
     { posted_on:, payee:, amount_cents: cents, error:, raw: }
   end
 

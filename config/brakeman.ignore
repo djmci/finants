@@ -1,0 +1,15 @@
+{
+  "ignored_warnings": [
+    {
+      "fingerprint": "0d70fd9feb26875db31cae3cd3ac22e98b0c74ee61bb9eabe953ec82e0a76fa9"
+    },
+    {
+      "fingerprint": "5b9ee84b1d5c19bc28d01b319f1f34fd95c7324830384bfd486ae16c2283bf3d"
+    },
+    {
+      "fingerprint": "edb5122a572c5956a591f416f9efd72d5fe78320767e21de72f7706bf3af96aa"
+    }
+  ],
+  "updated": "2026-10-20T18:04:08+11:00",
+  "brakeman_version": "8.1.0"
+}

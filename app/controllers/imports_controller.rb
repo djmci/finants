@@ -31,7 +31,7 @@ class ImportsController < ApplicationController
     override = params.fetch(:mapping, {}).permit(:date, :payee, :amount, :debit, :credit, :balance, :sign, :sheet).to_h.compact_blank
     @mapping = override.presence || @import.mapping || {}
     @csv = CsvImport.new(@import.payload, sheet: @mapping["sheet"])
-    @mapping = CsvImport.suggest(@csv.headers, @import.source_format).merge(@mapping) 
+    @mapping = CsvImport.suggest(@csv.headers, @import.source_format).merge(@mapping)
     @preview = @csv.preview(@import, @mapping) if @mapping["date"].present? && (@mapping["amount"].present? || @mapping["debit"].present?)
   end
 
