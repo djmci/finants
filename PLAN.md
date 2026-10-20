@@ -132,12 +132,22 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
   layout parser keyed off detected statement header.
 - Same preview/dedupe/batch pipeline as CSV.
 
-## Phase 4 — recurring rules [ ]
+## Phase 4 — recurring rules [x]
 
-- RecurringRule CRUD + pure occurrence-generation service.
-- Actual → rule match suggestions by payee + amount when reviewing
-  transactions; linking sets `recurring_rule_id`.
-- Upcoming-bills list (next 30 days) — first consumer of occurrences.
+- `RecurringRule`: payee, account, category, kind (expense/income/
+  transfer — transfer carries `to_account` for the mortgage-repayment
+  pattern), amount, frequency (weekly/fortnightly/monthly/yearly) ×
+  `every` N, start_on, end_on nullable, active (pause/resume).
+- `Recurring` — pure occurrence service: anchored advance (weekly/
+  fortnightly by days; monthly clamps day-of-month then resumes anchor
+  day; yearly), range-scoped, `end_on` aware.
+- Auto-match: `before_validation` on Transaction links a matching
+  active rule (same account, same amount magnitude, rule payee as
+  substring of txn payee, longest wins). Covers manual entry + imports.
+- `/recurring_rules` drawer CRUD + next-occurrence column; ↻ badge on
+  matched transactions; dashboard "Upcoming — next 30 days" panel.
+- Tests: occurrence math (clamp, intervals, mid-range anchor, end_on),
+  match_for, auto-link — 68 runs green.
 
 ## Phase 5 — forecast + dashboard [ ]
 

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_20_033132) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_20_034019) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -62,6 +62,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_033132) do
     t.index ["pattern"], name: "index_payee_rules_on_pattern", unique: true
   end
 
+  create_table "recurring_rules", force: :cascade do |t|
+    t.string "payee", null: false
+    t.bigint "account_id", null: false
+    t.bigint "category_id"
+    t.bigint "to_account_id"
+    t.string "kind", default: "expense", null: false
+    t.integer "amount_cents", null: false
+    t.string "frequency", null: false
+    t.integer "every", default: 1, null: false
+    t.date "start_on", null: false
+    t.date "end_on"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_recurring_rules_on_account_id"
+    t.index ["category_id"], name: "index_recurring_rules_on_category_id"
+    t.index ["to_account_id"], name: "index_recurring_rules_on_to_account_id"
+  end
+
   create_table "sessions", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "ip_address"
@@ -84,11 +103,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_033132) do
     t.string "import_hash"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "recurring_rule_id"
     t.index ["account_id", "import_hash"], name: "index_transactions_on_account_id_and_import_hash", unique: true, where: "(import_hash IS NOT NULL)"
     t.index ["account_id"], name: "index_transactions_on_account_id"
     t.index ["category_id"], name: "index_transactions_on_category_id"
     t.index ["import_id"], name: "index_transactions_on_import_id"
     t.index ["posted_on"], name: "index_transactions_on_posted_on"
+    t.index ["recurring_rule_id"], name: "index_transactions_on_recurring_rule_id"
     t.index ["transfer_pair_id"], name: "index_transactions_on_transfer_pair_id"
     t.index ["user_id"], name: "index_transactions_on_user_id"
   end
@@ -108,9 +129,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_033132) do
   add_foreign_key "imports", "accounts"
   add_foreign_key "imports", "users"
   add_foreign_key "payee_rules", "categories"
+  add_foreign_key "recurring_rules", "accounts"
+  add_foreign_key "recurring_rules", "accounts", column: "to_account_id"
+  add_foreign_key "recurring_rules", "categories"
   add_foreign_key "sessions", "users"
   add_foreign_key "transactions", "accounts"
   add_foreign_key "transactions", "categories"
   add_foreign_key "transactions", "imports"
+  add_foreign_key "transactions", "recurring_rules"
   add_foreign_key "transactions", "users"
 end

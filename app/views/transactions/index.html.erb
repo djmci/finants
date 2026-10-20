@@ -48,6 +48,7 @@
               <td>
                 <span class="font-medium"><%= txn.payee.presence || "—" %></span>
                 <% if txn.transfer? %><span class="badge badge-ghost badge-xs ml-1">transfer</span><% end %>
+                <% if txn.recurring_rule_id %><span class="badge badge-info badge-soft badge-xs ml-1" title="<%= txn.recurring_rule.human_schedule %>">↻</span><% end %>
               </td>
               <td class="hidden sm:table-cell text-base-content/70"><%= txn.account.name %></td>
               <td class="hidden sm:table-cell">

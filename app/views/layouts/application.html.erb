@@ -76,6 +76,7 @@
             <ul class="menu grow w-full px-3 gap-1 sidebar-menu">
               <li><%= link_to root_path, class: nav_class(root_path), title: "Dashboard" do %><%= icon "dashboard" %> <span class="sidebar-text">Dashboard</span><% end %></li>
               <li><%= link_to transactions_path, class: nav_class(transactions_path), title: "Transactions" do %><%= icon "transactions" %> <span class="sidebar-text">Transactions</span><% end %></li>
+              <li><%= link_to recurring_rules_path, class: nav_class(recurring_rules_path), title: "Recurring" do %><%= icon "repeat" %> <span class="sidebar-text">Recurring</span><% end %></li>
               <li><%= link_to accounts_path, class: nav_class(accounts_path), title: "Accounts" do %><%= icon "accounts" %> <span class="sidebar-text">Accounts</span><% end %></li>
               <li><%= link_to categories_path, class: nav_class(categories_path), title: "Categories" do %><%= icon "categories" %> <span class="sidebar-text">Categories</span><% end %></li>
               <li><%= link_to imports_path, class: nav_class(imports_path), title: "Imports" do %><%= icon "import" %> <span class="sidebar-text">Imports</span><% end %></li>

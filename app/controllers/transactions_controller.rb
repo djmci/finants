@@ -1,6 +1,6 @@
 class TransactionsController < ApplicationController
   def index
-    @transactions = Transaction.includes(:account, :category, :user).ordered
+    @transactions = Transaction.includes(:account, :category, :user, :recurring_rule).ordered
     @transactions = @transactions.where(account_id: params[:account]) if params[:account].present?
     @transactions = @transactions.uncategorised if params[:uncategorised].present?
     @transactions = @transactions.for_owner(params[:owner]) if params[:owner].present?

@@ -34,4 +34,28 @@
       </div>
     <% end %>
   </div>
+
+  <div class="card card-border bg-base-100">
+    <div class="card-body p-0">
+      <div class="flex items-center justify-between border-b border-base-300 px-4 py-2.5">
+        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Upcoming — next 30 days</h2>
+        <%= link_to "Recurring rules", recurring_rules_path, class: "link link-hover text-xs" %>
+      </div>
+      <table class="table table-sm">
+        <tbody>
+          <% @upcoming.each do |occ| %>
+            <tr>
+              <td class="whitespace-nowrap text-base-content/70 w-28"><%= occ[:on].strftime("%a %-d %b") %></td>
+              <td class="font-medium"><%= occ[:rule].payee %><% if occ[:rule].kind == "transfer" %> <span class="badge badge-ghost badge-xs">→ <%= occ[:rule].to_account&.name %></span><% end %></td>
+              <td class="hidden sm:table-cell text-base-content/70"><%= occ[:rule].account.name %></td>
+              <td class="text-right"><%= signed_money occ[:rule].signed_amount_cents %></td>
+            </tr>
+          <% end %>
+          <% if @upcoming.empty? %>
+            <tr><td class="text-center text-base-content/50 py-6">Nothing due — add recurring rules for bills and paydays.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>

@@ -1,0 +1,75 @@
+<% content_for :title, "Recurring — Finants" %>
+<% mobile_nav "repeat", recurring_rules_path %>
+<% content_for :mobile_action do %>
+  <label for="rule-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> Add</label>
+<% end %>
+
+<% editing = @edit_rule.present? %>
+<div class="drawer drawer-end">
+  <input id="rule-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= editing || params[:new].present? %>" />
+
+  <div class="drawer-content space-y-4">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <h1 class="font-bold text-xl">Recurring</h1>
+      <% if editing %>
+        <%= link_to recurring_rules_path(new: 1), class: "btn btn-primary btn-sm" do %><%= icon "plus" %> New rule<% end %>
+      <% else %>
+        <label for="rule-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> New rule</label>
+      <% end %>
+    </div>
+
+    <div class="card card-border bg-base-100 overflow-x-auto">
+      <div class="flex items-center border-b border-base-300 px-1">
+        <div role="tablist" class="tabs tabs-border flex-nowrap">
+          <%= link_to "Active", recurring_rules_path, role: "tab",
+              class: "tab py-2 whitespace-nowrap #{@archived ? "" : "tab-active"}" %>
+          <%= link_to "Paused", recurring_rules_path(archived: 1), role: "tab",
+              class: "tab py-2 whitespace-nowrap #{@archived ? "tab-active" : ""}" %>
+        </div>
+      </div>
+      <table class="table">
+        <thead>
+          <tr class="text-xs text-base-content/50"><th>Payee</th><th class="hidden sm:table-cell">Account</th><th>Schedule</th><th class="hidden sm:table-cell">Category</th><th class="text-right">Amount</th><th class="hidden sm:table-cell">Next</th><th class="w-20"></th></tr>
+        </thead>
+        <tbody>
+          <% @rules.each do |rule| %>
+            <tr class="hover:bg-base-200/50">
+              <td class="font-medium"><%= rule.payee %><% if rule.kind == "transfer" %> <span class="badge badge-ghost badge-xs">→ <%= rule.to_account&.name %></span><% end %></td>
+              <td class="hidden sm:table-cell text-base-content/70"><%= rule.account.name %></td>
+              <td class="text-base-content/70"><%= rule.human_schedule %><% if rule.end_on %> <span class="text-xs">until <%= rule.end_on.strftime("%-d %b %Y") %></span><% end %></td>
+              <td class="hidden sm:table-cell"><% if rule.category %><span class="badge badge-soft badge-xs"><%= rule.category.display_name %></span><% end %></td>
+              <td class="text-right"><%= signed_money(rule.signed_amount_cents) %></td>
+              <td class="hidden sm:table-cell text-base-content/70"><%= @next[rule.id]&.strftime("%-d %b") || "—" %></td>
+              <td class="text-right whitespace-nowrap w-20">
+                <div class="flex items-center justify-end">
+                  <% if rule.active? %>
+                    <%= button_to archive_recurring_rule_path(rule), class: "btn btn-ghost btn-circle btn-sm", title: "Pause" do %><%= icon "archive", class: "size-4" %><% end %>
+                  <% else %>
+                    <%= button_to unarchive_recurring_rule_path(rule), class: "btn btn-ghost btn-circle btn-sm", title: "Resume" do %><%= icon "unarchive", class: "size-4" %><% end %>
+                  <% end %>
+                  <%= link_to recurring_rules_path(edit: rule.id, archived: params[:archived]), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
+                    <%= icon "edit", class: "size-4" %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+          <% if @rules.empty? %>
+            <tr><td colspan="7" class="text-center text-base-content/50 py-8">No <%= @archived ? "paused" : "active" %> rules yet — add your bills and paydays here.</td></tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="drawer-side z-50">
+    <label for="rule-drawer" aria-label="close drawer" class="drawer-overlay"></label>
+    <div class="bg-base-100 min-h-full w-full sm:w-96 p-5 border-l border-base-300 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg"><%= editing ? "Edit rule" : "New rule" %></h2>
+        <label for="rule-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
+      </div>
+      <%= render "form", rule: @edit_rule || RecurringRule.new(start_on: Date.current, frequency: "monthly", kind: "expense"), accounts: @accounts, categories: @categories %>
+    </div>
+  </div>
+</div>

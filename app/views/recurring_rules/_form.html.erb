@@ -1,0 +1,49 @@
+<%= form_with model: rule, class: "space-y-4" do |f| %>
+  <div class="fieldset">
+    <%= f.label :payee, class: "label" %>
+    <%= f.text_field :payee, required: true, autofocus: true, class: "input w-full", placeholder: "e.g. Origin Energy, Employer" %>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div class="fieldset">
+      <%= f.label :kind, "Type", class: "label" %>
+      <%= f.select :kind, [ [ "Spending", "expense" ], [ "Income", "income" ], [ "Transfer", "transfer" ] ], {}, class: "select w-full" %>
+    </div>
+    <div class="fieldset">
+      <%= f.label :amount, class: "label" %>
+      <%= f.number_field :amount, step: "0.01", min: "0.01", required: true, class: "input w-full" %>
+    </div>
+  </div>
+  <div class="fieldset">
+    <%= f.label :account_id, "Account", class: "label" %>
+    <%= f.collection_select :account_id, accounts, :id, :name, {}, class: "select w-full" %>
+  </div>
+  <div class="fieldset">
+    <%= f.label :to_account_id, "To account (transfers only)", class: "label" %>
+    <%= f.collection_select :to_account_id, accounts, :id, :name, { include_blank: "—" }, class: "select w-full" %>
+  </div>
+  <div class="fieldset">
+    <%= f.label :category_id, "Category", class: "label" %>
+    <%= f.collection_select :category_id, categories, :id, :display_name, { include_blank: "Uncategorised" }, class: "select w-full" %>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div class="fieldset">
+      <%= f.label :frequency, class: "label" %>
+      <%= f.select :frequency, RecurringRule::FREQUENCIES.map { |fr| [ fr.humanize, fr ] }, {}, class: "select w-full" %>
+    </div>
+    <div class="fieldset">
+      <%= f.label :every, "Every N", class: "label" %>
+      <%= f.number_field :every, min: 1, value: rule.every || 1, class: "input w-full" %>
+    </div>
+  </div>
+  <div class="grid grid-cols-2 gap-3">
+    <div class="fieldset">
+      <%= f.label :start_on, "First on", class: "label" %>
+      <%= f.date_field :start_on, required: true, class: "input w-full" %>
+    </div>
+    <div class="fieldset">
+      <%= f.label :end_on, "Ends (optional)", class: "label" %>
+      <%= f.date_field :end_on, class: "input w-full" %>
+    </div>
+  </div>
+  <%= f.submit rule.persisted? ? "Save rule" : "Add rule", class: "btn btn-primary w-full" %>
+<% end %>
