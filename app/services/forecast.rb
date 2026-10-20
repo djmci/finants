@@ -54,6 +54,16 @@ class Forecast
     combined(range).min_by(&:last)
   end
 
+  # [[name, daily_cents (negative)]] for the visible scope — what the
+  # "unexplained spend" actually is, broken down by real categories.
+  def discretionary_breakdown(range)
+    rows = discretionary_rows(range).select { |aid, _, _| @accounts.map(&:id).include?(aid) }
+    names = Category.where(id: rows.map { |_, c, _| c }.compact.uniq).index_by(&:id)
+    rows.group_by { |_, cid, _| cid }
+        .map { |cid, rs| [ cid ? names[cid]&.display_name : "Uncategorised", rs.sum(&:last) / @window_days ] }
+        .sort_by(&:last)
+  end
+
   private
 
   # Static deltas — settle rules are evaluated dynamically in the walk.
@@ -84,18 +94,24 @@ class Forecast
   # including rows not yet linked via recurring_rule_id (e.g. imported
   # mortgage payments) — so they aren't double-counted by the rules.
   def discretionary_daily(range)
+    discretionary_rows(range).group_by(&:first)
+                             .transform_values { |rows| rows.sum(&:last) / @window_days }
+  end
+
+  # [[account_id, category_id, total_cents]] — real 90d spend that
+  # isn't transfers, rule-matched, or a rare outlier.
+  def discretionary_rows(range)
     from = range.begin - @window_days.days
     combos = Transaction.where(account: @all_accounts, posted_on: from..(range.begin - 1),
                                transfer_pair_id: nil)
                         .where("amount_cents < 0")
-                        .group(:account_id, :payee, :amount_cents).count
+                        .group(:account_id, :category_id, :payee, :amount_cents).count
     rules_by_account = @rules.select(&:active?).group_by(&:account_id)
-    totals = Hash.new(0)
-    combos.group_by { |(account_id, _, _), _| account_id }.each do |account_id, ac|
-      samples = ac.flat_map { |(_, _, cents), n| [ cents.abs ] * n }
+    combos.group_by { |(account_id, _, _, _), _| account_id }.flat_map do |account_id, ac|
+      samples = ac.flat_map { |(_, _, _, cents), n| [ cents.abs ] * n }
       median = samples.sort[samples.size / 2] || 0
       cap = median * 4
-      ac.each do |(_, payee, cents), count|
+      ac.filter_map do |(_, cid, payee, cents), count|
         # Rare outliers — one-off transfers like moving cash between own
         # accounts — shouldn't feed the everyday-spend estimate.
         next if count <= 2 && cents.abs > cap
@@ -105,10 +121,9 @@ class Forecast
           rkey.present? && key.include?(rkey) &&
             (r.settle? || r.amount_cents.abs == cents.abs)
         end
-        totals[account_id] += cents * count unless matched
+        [ account_id, cid, cents * count ] unless matched
       end
     end
-    totals.transform_values { |sum| sum / @window_days }
   end
 
   # {account_id => balance in cents at range.begin}

@@ -19,6 +19,7 @@ class DashboardController < ApplicationController
     @history = balance_history(scope)
     @floor = @projection.min_by(&:last)
     @net_flow = @projection.size > 1 ? (@projection.last.last - @projection.first.last) / @months : 0
+    @drift_categories = forecast.discretionary_breakdown(Date.current..(Date.current + 1.day))
 
     # Health + alerts always track the liquid cash position, whatever
     # scope the chart is showing — a card/loan balance is negative by

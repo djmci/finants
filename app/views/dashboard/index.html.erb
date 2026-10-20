@@ -85,6 +85,13 @@
         <span class="text-base-content/70">Lowest point: <strong class="<%= "text-error" if @floor && @floor.last.negative? %>"><%= signed_money(@floor&.last || 0) %></strong> on <%= @floor&.first&.strftime("%-d %b %Y") %></span>
         <span class="text-base-content/70">Net cashflow: <strong class="<%= @net_flow.negative? ? "text-error" : "text-success" %>"><%= signed_money(@net_flow) %>/mo</strong> <span class="text-xs">(recurring + historical spend)</span></span>
       </div>
+      <% if @drift_categories.any? %>
+        <p class="text-xs text-base-content/50">
+          Unexplained spend last 90d:
+          <% @drift_categories.first(4).each_with_index do |(name, cents), i| %><%= ", " if i.positive? %><%= name %> <%= signed_money(cents) %>/day<% end %><% if @drift_categories.size > 4 %>, +<%= @drift_categories.size - 4 %> more<% end %>
+          — everything else is a rule.
+        </p>
+      <% end %>
     </div>
   </div>
 
