@@ -16,6 +16,7 @@ class RecurringRule < ApplicationRecord
   validates :amount_cents, presence: true, numericality: { other_than: 0 }
   validates :to_account, presence: true, if: -> { kind == "transfer" }
   validate :transfer_accounts_differ, if: -> { kind == "transfer" }
+  validate :to_account_only_for_transfers
 
   scope :active, -> { where(active: true) }
   scope :ordered, -> { order(:payee) }
@@ -55,5 +56,11 @@ class RecurringRule < ApplicationRecord
 
   def transfer_accounts_differ
     errors.add(:to_account, "can't be the same account") if to_account_id == account_id
+  end
+
+  def to_account_only_for_transfers
+    if to_account_id.present? && kind != "transfer"
+      errors.add(:kind, "must be Transfer when a To account is set")
+    end
   end
 end
