@@ -11,19 +11,24 @@ class DashboardController < ApplicationController
     @upcoming = Recurring.occurrences_for(rules, Date.current..(Date.current + 30))
 
     @months = (params[:months].presence || 6).to_i.clamp(1, 24)
-    @scoped_account = @liquid.detect { |a| a.id.to_s == params[:account] }
+    @scoped_account = @accounts.detect { |a| a.id.to_s == params[:account] }
     scope = @scoped_account ? [ @scoped_account ] : @liquid
     forecast = Forecast.new(accounts: scope, rules: rules)
     full = forecast.combined(Date.current..(Date.current + [ @months, 12 ].max.months))
     @projection = full.take_while { |d, _| d <= Date.current + @months.months }
     @history = balance_history(scope)
-    @health = HORIZONS.to_h { |name, span| [ name, checkpoint(full, Date.current + span) ] }
     @floor = @projection.min_by(&:last)
     @net_flow = @projection.size > 1 ? (@projection.last.last - @projection.first.last) / @months : 0
 
+    # Health + alerts always track the liquid cash position, whatever
+    # scope the chart is showing — a card/loan balance is negative by
+    # nature, not a breach.
+    cash = Forecast.new(accounts: @liquid, rules: rules)
+                   .combined(Date.current..(Date.current + 12.months))
+    @health = HORIZONS.to_h { |name, span| [ name, checkpoint(cash, Date.current + span) ] }
     monitor = CashflowMonitor.new(warn: Setting.alert_warn_cents, critical: Setting.alert_critical_cents)
-    @breaches = monitor.breaches(full)
-    @health.each_value { |h| h[:severity] = monitor.severity_of(full.select { |d, _| d <= h[:date] }) }
+    @breaches = monitor.breaches(cash)
+    @health.each_value { |h| h[:severity] = monitor.severity_of(cash.select { |d, _| d <= h[:date] }) }
     @alert_warn = Setting.alert_warn_cents / 100.0
     @alert_critical = Setting.alert_critical_cents / 100.0
   end

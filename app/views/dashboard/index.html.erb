@@ -62,12 +62,12 @@
   <div class="card card-border bg-base-100">
     <div class="card-body gap-3">
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Cashflow forecast<%= " — #{@scoped_account.name}" if @scoped_account %></h2>
+        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Forecast<%= " — #{@scoped_account.name}" if @scoped_account %></h2>
         <div class="flex items-center gap-1">
           <%= form_with url: root_path, method: :get, local: true, class: "flex items-center gap-1" do %>
             <%= hidden_field_tag :months, @months %>
             <%= select_tag :account, options_for_select(
-                  [ [ "Cashflow (all liquid)", "" ] ] + @liquid.map { |a| [ a.name, a.id ] },
+                  [ [ "Cashflow", "" ] ] + @accounts.map { |a| [ a.name, a.id ] },
                   params[:account]),
                 onchange: "this.form.requestSubmit()", class: "select select-sm w-52" %>
           <% end %>
