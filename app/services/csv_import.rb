@@ -1,12 +1,15 @@
 require "csv"
+require "creek"
+require "tempfile"
 
-# Parses bank CSV exports into Transaction rows. Format presets are
-# detected by header signature (never filename); the mapping is always
-# user-overridable at preview time.
-#
-# Presets are best-effort — verify against real exports (PLAN phase 3).
+# Parses bank exports (CSV or xlsx) into Transaction rows. Format presets
+# are detected by header signature (never filename); the column mapping
+# is always user-overridable at preview time.
 class CsvImport
   ParseError = Class.new(StandardError)
+
+  XLSX_MAGIC = "PK\x03\x04".b
+  EXCEL_EPOCH = Date.new(1899, 12, 30)
 
   # amount: single signed column. debit/credit: separate columns.
   # sign "flip" inverts the amount column (Amex shows spend positive).
@@ -18,30 +21,45 @@ class CsvImport
       mapping: { "date" => "Date", "payee" => "Description", "amount" => "Amount", "sign" => "flip" }
     },
     "hsbc" => {
-      label: "HSBC AU",
-      match: ->(h) { h.any? { |c| c.match?(/debit|withdrawal/) } &&
-                     h.any? { |c| c.match?(/credit|deposit/) } },
-      mapping: { "date" => nil, "payee" => nil, "debit" => nil, "credit" => nil, "sign" => "as_is" }
+      # xlsx extract format: Transaction Date/Detail/Amount/Balance.
+      # Online CSV export uses debit/credit pairs — heuristics fill those.
+      label: "HSBC",
+      match: ->(h) { h == [ "transaction date", "transaction detail", "transaction amount", "balance" ] ||
+                     (h.any? { |c| c.match?(/debit|withdrawal/) } &&
+                      h.any? { |c| c.match?(/credit|deposit/) }) },
+      mapping: { "date" => "Transaction Date", "payee" => "Transaction Detail",
+                 "amount" => "Transaction Amount", "sign" => "as_is" }
     },
     "qudos" => {
       label: "Qudos Bank",
-      match: ->(h) { h.include?("transaction type") ||
-                     (h.include?("narrative") && h.include?("balance")) },
-      mapping: { "date" => nil, "payee" => nil, "debit" => nil, "credit" => nil, "sign" => "as_is" }
+      match: ->(h) { h.include?("entered date") && h.include?("transaction description") },
+      mapping: { "date" => "Entered Date", "payee" => "Transaction Description",
+                 "amount" => "Amount", "sign" => "as_is" }
     }
   }.freeze
 
   DATE_FORMATS = [ "%d/%m/%Y", "%Y-%m-%d", "%d %b %Y", "%d-%m-%Y", "%m/%d/%Y" ].freeze
 
-  attr_reader :headers, :rows
+  attr_reader :headers, :rows, :sheet_name
 
-  def initialize(payload)
-    table = CSV.parse(payload.to_s, headers: true, skip_blanks: true)
-    @headers = table.headers.compact
+  def initialize(payload, sheet: nil)
+    @payload = payload.to_s.b
+    if xlsx?
+      load_xlsx(sheet)
+    else
+      table = CSV.parse(@payload, headers: true, skip_blanks: true)
+      @headers = table.headers.compact
+      @rows = table.map { |r| @headers.index_with { |h| r[h] } }
+    end
     raise ParseError, "No header row found" if @headers.empty?
-    @rows = table.map { |r| @headers.index_with { |h| r[h] } }
-  rescue CSV::MalformedCSVError => e
+  rescue CSV::MalformedCSVError, Zip::Error => e
     raise ParseError, e.message
+  end
+
+  def xlsx? = @payload.start_with?(XLSX_MAGIC)
+
+  def sheets
+    xlsx? ? @book.sheets.map(&:name) : []
   end
 
   def self.detect(headers)
@@ -78,7 +96,7 @@ class CsvImport
   def commit(import, mapping)
     existing = Transaction.where(account: import.account).where.not(import_hash: nil)
                           .pluck(:import_hash).to_set
-    created = dupes = 0
+    created = 0
     batch_hashes = Set.new
     Import.transaction do
       rows.each do |raw|
@@ -115,6 +133,34 @@ class CsvImport
 
   private
 
+  def load_xlsx(sheet)
+    # The tempfile must outlive the CsvImport — creek re-reads the zip on
+    # each sheet access. GC unlinks it with the importer object.
+    @tmpfile = Tempfile.new([ "import", ".xlsx" ])
+    @tmpfile.binmode.write(@payload)
+    @tmpfile.flush
+    @book = Creek::Book.new(@tmpfile.path)
+    target = @book.sheets.find { |s| s.name == sheet } || @book.sheets.first
+    @sheet_name = target.name
+    cols = nil
+    @headers = []
+    @rows = []
+    target.rows.each do |row|
+      by_col = row.transform_keys { |k| k.sub(/\d+\z/, "") }
+      if cols.nil?
+        cols = by_col.keys.sort_by { |c| col_index(c) }
+        @headers = cols.map { |c| by_col[c].to_s.strip }
+      else
+        @rows << @headers.zip(cols.map { |c| by_col[c] }).to_h
+      end
+    end
+  end
+
+  # "A" => 0, "B" => 1, "AA" => 26
+  def col_index(letter)
+    letter.chars.reduce(0) { |n, ch| n * 26 + (ch.ord - 64) } - 1
+  end
+
   def cents_for(raw, mapping)
     if mapping["debit"].present? || mapping["credit"].present?
       debit = parse_money(raw[mapping["debit"]]) || 0
@@ -129,7 +175,11 @@ class CsvImport
 
   def parse_date(value)
     return nil if value.blank?
+    return value.to_date if value.respond_to?(:to_date) && !value.is_a?(String)
     str = value.to_s.strip
+    if str.match?(/\A\d{5}\z/) && str.to_i.between?(40000, 60000)
+      return EXCEL_EPOCH + str.to_i
+    end
     DATE_FORMATS.each do |fmt|
       begin
         return Date.strptime(str, fmt)
@@ -141,6 +191,7 @@ class CsvImport
 
   def parse_money(value)
     return nil if value.blank?
+    return (value * 100).round.to_i if value.is_a?(Numeric)
     str = value.to_s.strip.gsub(/[$,\s]/, "")
     negative = str.start_with?("-") || (str.start_with?("(") && str.end_with?(")"))
     digits = str.gsub(/[^0-9.]/, "")

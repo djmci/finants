@@ -76,4 +76,32 @@ class CsvImportTest < ActiveSupport::TestCase
       import.destroy!
     end
   end
+
+  test "detects qudos headers" do
+    assert_equal "qudos", CsvImport.detect([ "Effective Date", "Entered Date", "Transaction Description", "Amount", "Balance" ])
+  end
+
+  test "qudos rows parse signed amounts and entered dates" do
+    csv = CsvImport.new("Effective Date,Entered Date,Transaction Description,Amount,Balance\n,16/10/2026,Osko Payment To Foo,-$250.00,$1020.30\n")
+    rows = csv.rows.map { |r| csv.parse_row(r, CsvImport.suggest(csv.headers, "qudos")) }
+    assert_equal Date.new(2026, 10, 16), rows.first[:posted_on]
+    assert_equal(-25000, rows.first[:amount_cents])
+  end
+
+  test "xlsx parses typed cells — dates as Date, amounts as cents" do
+    payload = File.binread(file_fixture("hsbc_extract.xlsx"))
+    csv = CsvImport.new(payload)
+    assert csv.xlsx?
+    assert_equal %w[Account Loan], csv.sheets
+    assert_equal "hsbc", CsvImport.detect(csv.headers)
+    rows = csv.rows.map { |r| csv.parse_row(r, CsvImport.suggest(csv.headers, "hsbc")) }
+    assert_equal Date.new(2025, 7, 2), rows.first[:posted_on]
+    assert_equal(-12900, rows.first[:amount_cents])
+    assert_equal "AUSSIE BROADBAND", rows.first[:payee]
+    assert_equal categories(:food), PayeeRule.for(rows.last[:payee])
+
+    loan = CsvImport.new(payload, sheet: "Loan")
+    assert_equal 1, loan.rows.size
+    assert_equal(-472975, loan.parse_row(loan.rows.first, CsvImport.suggest(loan.headers, "hsbc"))[:amount_cents])
+  end
 end

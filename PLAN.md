@@ -105,10 +105,15 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
 
 - Upload → header sniff → preview → commit; `imports.payload` stores the
   raw CSV so preview/commit are separate steps.
-- `CsvImport` service: presets detected by header signature (HSBC /
-  Qudos / Amex — **provisional until verified against real exports**),
-  generic column-mapper with heuristic prefill, debit+credit or signed
-  amount columns, `flip` for spend-positive exports, d/m/Y + ISO dates.
+- `CsvImport` service: presets detected by header signature — **Qudos**
+  (`Effective Date,Entered Date,Transaction Description,Amount,Balance`
+  — Entered Date is the populated one) and **HSBC** (xlsx extract
+  `Transaction Date/Detail/Amount/Balance`, plus debit/credit CSV
+  variant) verified against real files; Amex preset is still a guess
+  pending a real export.
+- **xlsx uploads** via `creek`: sheet picker for multi-sheet workbooks,
+  binary `imports.payload`, typed cells (real dates/numbers), Excel
+  serial-date fallback.
 - Batches: draft/committed `status`; deleting an import cascades its
   transactions (undo). Dedupe via `import_hash` (account + raw row),
   in-batch too — re-uploading the same file is a no-op.
@@ -165,6 +170,12 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
 
 ## Later / not scheduled
 
+- **Inter-account transfer pairing on import** — bank exports contain
+  legs like "Transfer to SAV 02348xxx" that are movements between own
+  accounts, not real spend/income. A matching pass could link
+  opposite-signed rows on same/adjacent dates across accounts into
+  `transfer_pair_id`, or a "transfers" review bucket to suppress them
+  from spend reports.
 - Bank API sync (Up Bank or similar) — CSV/PDF first.
 - Category budget targets once forecasting proves out.
 - MCP endpoint like anthill's `/mcp` (agents log transactions).

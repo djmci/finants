@@ -28,20 +28,21 @@ class ImportsController < ApplicationController
 
   def show
     @import = Import.find(params[:id])
-    @csv = CsvImport.new(@import.payload)
-    override = params.fetch(:mapping, {}).permit(:date, :payee, :amount, :debit, :credit, :sign).to_h.compact_blank
+    override = params.fetch(:mapping, {}).permit(:date, :payee, :amount, :debit, :credit, :sign, :sheet).to_h.compact_blank
     @mapping = override.presence || @import.mapping || {}
+    @csv = CsvImport.new(@import.payload, sheet: @mapping["sheet"])
+    @mapping = CsvImport.suggest(@csv.headers, @import.source_format).merge(@mapping) 
     @preview = @csv.preview(@import, @mapping) if @mapping["date"].present? && (@mapping["amount"].present? || @mapping["debit"].present?)
   end
 
   def commit
     import = Import.find(params[:id])
-    mapping = params.fetch(:mapping, {}).permit(:date, :payee, :amount, :debit, :credit, :sign).to_h
+    mapping = params.fetch(:mapping, {}).permit(:date, :payee, :amount, :debit, :credit, :sign, :sheet).to_h
     if mapping["date"].blank? || (mapping["amount"].blank? && mapping["debit"].blank?)
       redirect_to import, alert: "Map at least a date column and an amount (or debit/credit)."
       return
     end
-    result = CsvImport.new(import.payload).commit(import, mapping)
+    result = CsvImport.new(import.payload, sheet: mapping["sheet"]).commit(import, mapping)
     redirect_to import, notice: "Imported #{result[:created]} transactions (#{result[:dupes]} skipped as duplicates)."
   end
 

@@ -25,6 +25,12 @@
         <h2 class="font-semibold">Column mapping</h2>
         <%= form_with url: import_path(@import), method: :get, class: "grid grid-cols-2 sm:grid-cols-3 gap-3" do %>
           <% cols = @csv.headers %>
+          <% if @csv.sheets.size > 1 %>
+            <div class="fieldset">
+              <%= label_tag "mapping_sheet", "Sheet", class: "label" %>
+              <%= select_tag "mapping[sheet]", options_for_select(@csv.sheets.map { |s| [ s, s ] }, @csv.sheet_name), id: "mapping_sheet", class: "select select-sm w-full" %>
+            </div>
+          <% end %>
           <% { "date" => "Date", "payee" => "Payee / description", "amount" => "Amount (signed)", "debit" => "Debit", "credit" => "Credit" }.each do |key, label| %>
             <div class="fieldset">
               <%= label_tag "mapping_#{key}", label, class: "label" %>
