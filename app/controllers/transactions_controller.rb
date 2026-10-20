@@ -1,10 +1,15 @@
 class TransactionsController < ApplicationController
+  PAGE_SIZE = 100
+
   def index
     @transactions = Transaction.includes(:account, :category, :user, :recurring_rule).ordered
     @transactions = @transactions.where(account_id: params[:account]) if params[:account].present?
     @transactions = @transactions.uncategorised if params[:uncategorised].present?
     @transactions = @transactions.for_owner(params[:owner]) if params[:owner].present?
     @transactions = @transactions.where("payee ILIKE ?", "%#{params[:q].strip}%") if params[:q].present?
+    @pages = (@transactions.count.to_f / PAGE_SIZE).ceil
+    @page = params[:page].to_i.clamp(1, [ @pages, 1 ].max)
+    @transactions = @transactions.offset((@page - 1) * PAGE_SIZE).limit(PAGE_SIZE)
     @edit_txn = Transaction.find_by(id: params[:edit])
     @accounts = Account.active.order(:name)
     @categories = Category.active.order(:kind, :name)
@@ -33,6 +38,16 @@ class TransactionsController < ApplicationController
       redirect_back_to_page transactions_path, anchor: "transaction_#{txn.id}", notice: "Transaction saved."
     else
       redirect_back_to_page transactions_path(edit: txn.id), alert: txn.errors.full_messages.to_sentence
+    end
+  end
+
+  # One-click tag from an uncategorised pill — swaps just the cell.
+  def categorise
+    @txn = Transaction.find(params[:id])
+    @txn.update!(category_id: params[:category_id])
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_back_to_page transactions_path(anchor: "transaction_#{@txn.id}"), notice: "Transaction saved." }
     end
   end
 

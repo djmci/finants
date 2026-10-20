@@ -1,0 +1,12 @@
+<% if txn.category %>
+  <span class="badge badge-soft badge-xs"><%= txn.category.display_name %></span>
+<% elsif suggestion %>
+  <%= button_to categorise_transaction_path(txn), method: :patch,
+        params: { category_id: suggestion.id }, form: { class: "inline" },
+        class: "badge badge-warning badge-outline badge-xs border-dashed gap-0.5 cursor-pointer",
+        title: "Tag as #{suggestion.display_name}" do %>
+    <%= icon "plus", class: "size-3" %><%= suggestion.display_name %>
+  <% end %>
+<% else %>
+  <span class="badge badge-warning badge-soft badge-xs">uncategorised</span>
+<% end %>

@@ -13,7 +13,9 @@ Rails.application.routes.draw do
       post :unarchive
     end
   end
-  resources :transactions, only: [ :index, :create, :update, :destroy ]
+  resources :transactions, only: [ :index, :create, :update, :destroy ] do
+    patch :categorise, on: :member
+  end
   resource :transfer, only: :create
   resource :settings, only: :update
   resource :health, controller: "health", only: :show

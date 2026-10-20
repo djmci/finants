@@ -64,6 +64,33 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Tag as Food", response.body
   end
 
+  test "index paginates at 100" do
+    sign_in_as users(:one)
+    105.times do |i|
+      Transaction.create!(account: accounts(:everyday), posted_on: Date.current - i.days,
+                          payee: "BULK#{i}", amount_cents: -100)
+    end
+    get transactions_url
+    assert_response :success
+    assert_match "Page 1 of", response.body
+    first_page_payees = response.body.scan(/BULK\d+/).uniq
+    get transactions_url(page: 2)
+    second_page_payees = response.body.scan(/BULK\d+/).uniq
+    assert_empty first_page_payees & second_page_payees
+    assert_equal 105 + Transaction.where("payee LIKE ?", "BULK%").where.not(posted_on: (Date.current - 104.days)..Date.current).count, (first_page_payees + second_page_payees).size
+  end
+
+  test "categorise updates category via turbo stream" do
+    sign_in_as users(:one)
+    txn = transactions(:mystery_spend)
+    assert_nil txn.category_id
+    patch categorise_transaction_url(txn, format: :turbo_stream),
+          params: { category_id: categories(:food).id }
+    assert_response :success
+    assert_match "turbo-stream", response.media_type
+    assert_equal categories(:food), txn.reload.category
+  end
+
   test "update redirects back with an anchor to the edited row" do
     sign_in_as users(:one)
     txn = transactions(:pay)

@@ -1,0 +1,5 @@
+<%= turbo_stream.replace "txn_category_#{@txn.id}" do %>
+  <td class="hidden sm:table-cell" id="txn_category_<%= @txn.id %>">
+    <%= render "category_badge", txn: @txn, suggestion: nil %>
+  </td>
+<% end %>

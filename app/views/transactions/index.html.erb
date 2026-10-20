@@ -38,24 +38,12 @@
                 <% if txn.recurring_rule_id %><span class="badge badge-info badge-soft badge-xs ml-1" title="<%= txn.recurring_rule.human_schedule %>">↻</span><% end %>
               </td>
               <td class="hidden sm:table-cell text-base-content/70"><%= txn.account.name %></td>
-              <td class="hidden sm:table-cell">
-                <% if txn.category %>
-                  <span class="badge badge-soft badge-xs"><%= txn.category.display_name %></span>
-                <% elsif (suggestion = @suggestions[txn.id]) %>
-                  <%= button_to transaction_path(txn), method: :patch,
-                        params: { transaction: { category_id: suggestion.id } },
-                        form: { class: "inline" },
-                        class: "badge badge-warning badge-outline badge-xs border-dashed gap-0.5 cursor-pointer",
-                        title: "Tag as #{suggestion.display_name}" do %>
-                    <%= icon "plus", class: "size-3" %><%= suggestion.display_name %>
-                  <% end %>
-                <% else %>
-                  <span class="badge badge-warning badge-soft badge-xs">uncategorised</span>
-                <% end %>
+              <td class="hidden sm:table-cell" id="txn_category_<%= txn.id %>">
+                <%= render "category_badge", txn: txn, suggestion: @suggestions[txn.id] %>
               </td>
               <td class="text-right"><%= signed_money txn.amount_cents %></td>
               <td class="text-right whitespace-nowrap w-12">
-                <%= link_to transactions_path(edit: txn.id, account: params[:account], owner: params[:owner], q: params[:q], uncategorised: params[:uncategorised], anchor: "transaction_#{txn.id}"), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
+                <%= link_to transactions_path(edit: txn.id, account: params[:account], owner: params[:owner], q: params[:q], uncategorised: params[:uncategorised], page: params[:page], anchor: "transaction_#{txn.id}"), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
                   <%= icon "edit", class: "size-4" %>
                 <% end %>
               </td>
@@ -66,6 +54,22 @@
           <% end %>
         </tbody>
       </table>
+      <% if @pages > 1 %>
+        <div class="flex items-center justify-between px-4 py-2.5 border-t border-base-300">
+          <% params_page = params.permit(:account, :owner, :q, :uncategorised) %>
+          <% if @page > 1 %>
+            <%= link_to "← Newer", transactions_path(params_page.merge(page: @page - 1)), class: "btn btn-ghost btn-sm" %>
+          <% else %>
+            <span></span>
+          <% end %>
+          <span class="text-xs text-base-content/50">Page <%= @page %> of <%= @pages %></span>
+          <% if @page < @pages %>
+            <%= link_to "Older →", transactions_path(params_page.merge(page: @page + 1)), class: "btn btn-ghost btn-sm" %>
+          <% else %>
+            <span></span>
+          <% end %>
+        </div>
+      <% end %>
     </div>
   </div>
 
