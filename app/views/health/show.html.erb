@@ -36,7 +36,7 @@
         <p class="text-sm text-base-content/70">
           Committed outgoings <strong><%= money @report.monthly_committed.round %>/mo</strong>
           against recurring income <strong><%= money @report.monthly_income.round %>/mo</strong>
-          — <%= cov >= 1 ? "covered" : "shortfall of #{money (@report.monthly_income - @report.monthly_committed).abs.round}" %>.
+          — <% if cov >= 1 %>covered.<% else %>shortfall of <%= money (@report.monthly_income - @report.monthly_committed).abs.round %>.<% end %>
         </p>
       <% else %>
         <p class="text-sm text-base-content/50">No committed outgoings yet — add recurring rules.</p>
