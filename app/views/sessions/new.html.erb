@@ -1,0 +1,35 @@
+<% content_for :title, "Sign in — Finants" %>
+
+<div class="w-full max-w-sm">
+  <div class="flex items-center justify-center gap-2 mb-4">
+    <%= ant_icon size: 32 %>
+    <%= finants_wordmark class: "font-bold text-2xl tracking-tight" %>
+  </div>
+  <div class="card card-border bg-base-100">
+    <div class="card-body">
+    <p class="text-sm text-base-content/60">Sign in to your budget</p>
+
+    <% if alert = flash[:alert] %>
+      <div class="alert alert-error mt-2"><span><%= alert %></span></div>
+    <% end %>
+    <% if notice = flash[:notice] %>
+      <div class="alert alert-success mt-2"><span><%= notice %></span></div>
+    <% end %>
+
+    <%= form_with url: session_url, class: "space-y-4 mt-2" do |form| %>
+      <div class="fieldset">
+        <%= form.label :email_address, "Email", class: "label" %>
+        <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", value: params[:email_address], class: "input w-full" %>
+      </div>
+      <div class="fieldset">
+        <%= form.label :password, class: "label" %>
+        <%= form.password_field :password, required: true, autocomplete: "current-password", maxlength: 72, class: "input w-full" %>
+      </div>
+      <%= form.submit "Sign in", class: "btn btn-primary w-full" %>
+      <div class="text-center text-sm">
+        <%= link_to "Forgot password?", new_password_path, class: "link" %>
+      </div>
+    <% end %>
+    </div>
+  </div>
+</div>

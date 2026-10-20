@@ -53,16 +53,19 @@ Status legend: `[ ]` pending · `[~]` in progress · `[x]` done
   generic column-mapper fallback, import batches (a bad import deletable
   wholesale), dedupe via hash of (account, date, amount, description).
 
-## Phase 0 — skeleton [ ]
+## Phase 0 — skeleton [x]
 
-- [ ] `rails new . --database=postgresql` (match anthill: Ruby 3.3.11,
-      Rails 8.1.x)
-- [ ] `bundle config path vendor/bundle` (rbenv gem dir not writable)
-- [ ] solid_cache/queue/cable + `db:create db:migrate`
-- [ ] tailwindcss-rails + DaisyUI via npm + `@plugin "daisyui"`
-- [ ] `rails generate authentication`
-- [ ] `.devin/skills/finants/SKILL.md`
-- [ ] GitHub repo + initial push
+- [x] `rails new . --database=postgresql` (Rails 8.1.3, Ruby 3.3.11)
+- [x] `bundle config path vendor/bundle` (rbenv gem dir not writable)
+- [x] solid_cache/queue/cable + `db:prepare`
+- [x] tailwindcss-rails + DaisyUI 5.7.50 via npm + `@plugin "daisyui"`
+      (emerald default, forest prefersdark — anthill's themes are brand
+      red; Finants goes green-for-money)
+- [x] `rails generate authentication` + name/role on users, dev seed
+- [x] Red Ant branding: ant icon partial, `ant_icon`/`finants_wordmark`
+      helpers ("Ant" hard-coded #FF2A00 — theme primary is green)
+- [x] `.devin/skills/finants/SKILL.md`
+- [x] GitHub repo `djmci/finants` (private) + initial push
 
 ## Phase 1 — domain core [ ]
 

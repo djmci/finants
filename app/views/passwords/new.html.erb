@@ -1,0 +1,28 @@
+<% content_for :title, "Reset password — Finants" %>
+
+<div class="w-full max-w-sm">
+  <div class="flex items-center justify-center gap-2 mb-4">
+    <%= ant_icon size: 32 %>
+    <%= finants_wordmark class: "font-bold text-2xl tracking-tight" %>
+  </div>
+  <div class="card card-border bg-base-100">
+    <div class="card-body">
+    <p class="text-sm text-base-content/60">Forgot your password?</p>
+
+    <% if alert = flash[:alert] %>
+      <div class="alert alert-error mt-2"><span><%= alert %></span></div>
+    <% end %>
+
+    <%= form_with url: passwords_path, class: "space-y-4 mt-2" do |form| %>
+      <div class="fieldset">
+        <%= form.label :email_address, "Email", class: "label" %>
+        <%= form.email_field :email_address, required: true, autofocus: true, autocomplete: "username", class: "input w-full" %>
+      </div>
+      <%= form.submit "Email reset instructions", class: "btn btn-primary w-full" %>
+      <div class="text-center text-sm">
+        <%= link_to "Back to sign in", new_session_path, class: "link" %>
+      </div>
+    <% end %>
+    </div>
+  </div>
+</div>
