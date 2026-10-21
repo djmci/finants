@@ -127,9 +127,35 @@ class Forecast
   end
 
   # {account_id => balance in cents at range.begin}
+  # Settle targets seed from the accrual since the last paired payment
+  # credit — the real "amount due" — not opening_balance + full history.
   def seed_balances(range)
     sums = Transaction.where(account: @all_accounts).where("posted_on < ?", range.begin)
                       .group(:account_id).sum(:amount_cents)
-    @all_accounts.to_h { |a| [ a.id, a.opening_balance_cents + sums.fetch(a.id, 0) ] }
+    seeds = @all_accounts.to_h { |a| [ a.id, a.opening_balance_cents + sums.fetch(a.id, 0) ] }
+    @rules.select(&:settle?).each do |rule|
+      if (anchor = last_payment_credit(rule, range.begin))
+        seeds[rule.to_account_id] = Transaction.where(account: rule.to_account, transfer_pair_id: nil)
+                                             .where("posted_on > ?", anchor.posted_on)
+                                             .where("posted_on < ?", range.begin)
+                                             .sum(:amount_cents)
+      end
+    end
+    seeds
+  end
+
+  # The latest credit on the settle target that pairs to a bank-side
+  # payment — near-identical amount, within a few days' posting lag.
+  def last_payment_credit(rule, upto)
+    key = PayeeRule.detection_key(rule.payee)
+    payments = Transaction.where(account: rule.account, transfer_pair_id: nil)
+                          .where("posted_on < ?", upto).where("amount_cents < 0")
+                          .select { |t| PayeeRule.detection_key(t.payee).include?(key) }
+    Transaction.where(account: rule.to_account, transfer_pair_id: nil)
+               .where("posted_on < ?", upto).where("amount_cents > 0")
+               .select do |c|
+      payments.any? { |p| (c.amount_cents - p.amount_cents.abs).abs <= [ c.amount_cents * 0.02, 500 ].max &&
+                          (c.posted_on - p.posted_on).abs <= 5 }
+    end.max_by(&:posted_on)
   end
 end
