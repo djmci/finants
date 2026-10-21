@@ -78,7 +78,7 @@
                 onchange: "this.form.requestSubmit()", class: "select select-sm w-52" %>
           <% end %>
           <div class="join">
-            <% { rules: "Best case", hybrid: "Worst case" }.each do |b, label| %>
+            <% { rules: "Best case", hybrid: "Most likely" }.each do |b, label| %>
               <%= link_to label, root_path(basis: b, months: @months, account: params[:account]),
                   class: "join-item btn btn-sm #{@basis == b ? "btn-brand" : ""}", title: { rules: "Only the items in your Forecast list", hybrid: "Your list, plus real-life spend it doesn't cover" }[b] %>
             <% end %>
