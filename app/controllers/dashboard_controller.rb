@@ -18,6 +18,7 @@ class DashboardController < ApplicationController
     forecast = Forecast.new(accounts: scope, rules: rules, basis: @basis,
                           window_days: @basis == :history ? 365 : 90)
     full = forecast.combined(Date.current..(Date.current + [ @months, 12 ].max.months))
+    @settle_amounts = forecast.settlement_amounts || {}
     @projection = full.take_while { |d, _| d <= Date.current + @months.months }
     @history = balance_history(scope)
     @floor = @projection.min_by(&:last)

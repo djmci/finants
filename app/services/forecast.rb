@@ -10,7 +10,7 @@
 # per account, excluding transfer pairs and anything matching an active
 # rule — the rules already model that spend, so it can't double-count.
 class Forecast
-  attr_reader :accounts
+  attr_reader :accounts, :settlement_amounts
 
   # basis: :hybrid (rules + residual drift), :rules (scheduled items
   # only), :history (raw drift only — no rules, no masking).
@@ -34,7 +34,16 @@ class Forecast
   def series(range)
     deltas = occurrence_deltas(range)
     settles = settle_occurrences(range)
-    disc = @basis == :rules ? {} : discretionary_daily(range)
+    if @basis == :rules
+      # A settle target's balance is real data, not a plan — let real
+      # drift drive its accrual, and skip the charge rules' deltas on
+      # it (real history is the better measurement; both would double).
+      target_ids = @rules.select(&:settle?).map(&:to_account_id)
+      deltas = Hash.new(0).merge(deltas.reject { |(aid, _), _| target_ids.include?(aid) })
+      disc = discretionary_daily(range).slice(*target_ids)
+    else
+      disc = discretionary_daily(range)
+    end
     if @basis != :rules
       # Real income that no rule covers (reimbursements, refunds, misc)
       # drifts in too — masked exactly like spend.
@@ -54,11 +63,13 @@ class Forecast
       end
     end
     bal = seed_balances(range)
+    @settlement_amounts = {}
     points = @all_accounts.index_with { |a| [] }
     range.each do |d|
       @all_accounts.each { |a| bal[a.id] += deltas[[ a.id, d ]] + (disc[a.id] || 0) }
       (settles[d] || []).each do |rule|
         amt = -bal[rule.to_account_id]
+        @settlement_amounts[[ rule.id, d ]] = amt
         bal[rule.to_account_id] += amt
         bal[rule.account_id] -= amt
       end

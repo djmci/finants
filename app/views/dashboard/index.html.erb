@@ -120,7 +120,8 @@
               <td class="whitespace-nowrap text-base-content/70 w-28"><%= occ[:on].strftime("%a %-d %b") %></td>
               <td class="font-medium"><%= occ[:rule].payee %><% if occ[:rule].kind == "transfer" || occ[:rule].settle? %> <span class="badge badge-ghost badge-xs">→ <%= occ[:rule].to_account&.name %></span><% end %></td>
               <td class="hidden sm:table-cell text-base-content/70"><%= occ[:rule].account.name %></td>
-              <td class="text-right"><%= occ[:rule].settle? ? content_tag(:span, "balance", class: "text-xs text-base-content/60") : signed_money(occ[:rule].signed_amount_cents) %></td>
+                            <% amt = occ[:rule].settle? ? @settle_amounts[[occ[:rule].id, occ[:on]]] : nil %>
+              <td class="text-right"><%= amt ? signed_money(-amt) : (occ[:rule].settle? ? content_tag(:span, "balance", class: "text-xs text-base-content/60") : signed_money(occ[:rule].signed_amount_cents)) %></td>
             </tr>
           <% end %>
           <% if @upcoming.empty? %>
