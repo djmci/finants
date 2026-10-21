@@ -23,7 +23,7 @@
   </div>
   <div class="fieldset">
     <%= f.label :category_id, "Category", class: "label" %>
-    <%= f.collection_select :category_id, categories, :id, :display_name, { include_blank: "Uncategorised", selected: txn.category_id || suggested&.id }, class: "select w-full" %>
+    <%= f.collection_select :category_id, categories, :id, :display_name, { include_blank: "Uncategorised", selected: txn.category_id || local_assigns[:suggested]&.id }, class: "select w-full" %>
     <%= render "categories/new_link", select_id: "transaction_category_id" %>
   </div>
   <label class="flex items-center gap-2 cursor-pointer">
