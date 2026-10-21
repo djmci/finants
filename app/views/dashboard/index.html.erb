@@ -89,24 +89,38 @@
                   params[:account]),
                 onchange: "this.form.requestSubmit()", class: "select select-sm w-52" %>
           <% end %>
+          <% if @scenarios.any? %>
+            <%= form_with url: root_path, method: :get, class: "flex items-center" do %>
+              <%= hidden_field_tag :months, @months %>
+              <%= hidden_field_tag :basis, @basis %>
+              <%= hidden_field_tag :account, params[:account] %>
+              <%= select_tag :scenario, options_for_select(
+                    [ [ "No scenario", "" ] ] + @scenarios.map { |s| [ "vs #{s.name}", s.id ] },
+                    params[:scenario]),
+                  onchange: "this.form.requestSubmit()", class: "select select-sm w-44" %>
+            <% end %>
+          <% end %>
           <div class="join">
             <% { rules: "Best case", hybrid: "Most likely" }.each do |b, label| %>
-              <%= link_to label, root_path(basis: b, months: @months, account: params[:account]),
+              <%= link_to label, root_path(basis: b, months: @months, account: params[:account], scenario: params[:scenario]),
                   class: "join-item btn btn-sm #{@basis == b ? "btn-brand" : ""}", title: { rules: "Only the items in your Forecast list", hybrid: "Your list, plus real-life spend it doesn't cover" }[b] %>
             <% end %>
           </div>
           <div class="join">
             <% [ 3, 6, 12 ].each do |m| %>
-              <%= link_to "#{m}mo", root_path(months: m, account: params[:account], basis: @basis),
+              <%= link_to "#{m}mo", root_path(months: m, account: params[:account], basis: @basis, scenario: params[:scenario]),
                   class: "join-item btn btn-sm #{@months == m ? "btn-brand" : ""}" %>
             <% end %>
           </div>
         </div>
       </div>
-      <%= render "balance_chart", history: @history, projection: @projection %>
+      <%= render "balance_chart", history: @history, projection: @projection, comparison: @scenario_projection %>
       <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
         <span class="text-base-content/70">Projected <%= @projection.last&.first&.strftime("%-d %b %Y") %>: <strong><%= signed_money(@projection.last&.last || 0) %></strong></span>
         <span class="text-base-content/70">Lowest point: <strong class="<%= "text-error" if @floor && @floor.last.negative? %>"><%= signed_money(@floor&.last || 0) %></strong> on <%= @floor&.first&.strftime("%-d %b %Y") %></span>
+        <% if @scenario_projection %>
+          <span class="text-base-content/70"><span class="text-warning">◆</span> <%= @scenario.name %>: <strong><%= signed_money(@scenario_projection.last&.last || 0) %></strong></span>
+        <% end %>
         <span class="text-base-content/70">Ongoing rate: <strong class="<%= @net_flow.negative? ? "text-error" : "text-success" %>"><%= signed_money(@net_flow) %>/mo</strong> <span class="text-xs">(trend slope — ignores one-time hits like the card payoff)</span></span>
       </div>
       <% if @drift_categories.any? %>

@@ -18,7 +18,7 @@ class RecurringSuggestions
   # [{payee, account, amount_cents, frequency, every, kind,
   #   count, last_on, next_on}]
   def suggest
-    existing = RecurringRule.active.includes(:account).to_a
+    existing = RecurringRule.live.active.includes(:account).to_a
     suggestions = []
     transaction_groups.each do |(account_id, key), txns|
       dates = txns.map(&:posted_on).uniq.sort

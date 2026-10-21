@@ -23,6 +23,9 @@ Rails.application.routes.draw do
   resources :imports, except: [ :edit, :update ] do
     post :commit, on: :member
   end
+  resources :scenarios, only: [ :create, :destroy ] do
+    member { post :resync }
+  end
   resources :recurring_rules, except: [ :new, :edit, :show, :destroy ] do
     member do
       post :archive

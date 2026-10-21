@@ -19,7 +19,7 @@ class TransactionsController < ApplicationController
     @accounts = Account.active.order(:name)
     @categories = Category.active.order(:kind, :name)
     @members = User.order(:name)
-    @once_rules = RecurringRule.active.where(frequency: "once").includes(:account).order(:payee)
+    @once_rules = RecurringRule.live.active.where(frequency: "once").includes(:account).order(:payee)
     @suggestions = suggest_categories(@transactions.select { |t| t.category_id.nil? })
   end
 

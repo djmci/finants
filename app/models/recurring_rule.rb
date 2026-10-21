@@ -20,7 +20,10 @@ class RecurringRule < ApplicationRecord
 
   before_validation { self.amount_cents = 0 if settle? && amount_cents.nil? }
 
+  belongs_to :scenario, optional: true
+
   scope :active, -> { where(active: true) }
+  scope :live, -> { where(scenario_id: nil) }
   scope :ordered, -> { order(:payee) }
 
   dollar_field :amount
@@ -49,7 +52,7 @@ class RecurringRule < ApplicationRecord
   def self.match_for(account:, payee:, amount_cents:)
     key = PayeeRule.detection_key(payee)
     return nil if key.blank?
-    active.where(account: account).select do |r|
+    live.active.where(account: account).select do |r|
       rkey = PayeeRule.detection_key(r.payee)
       rkey.present? && key.include?(rkey) &&
         (r.settle? || r.amount_cents.abs == amount_cents.abs)

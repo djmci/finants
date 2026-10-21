@@ -1,4 +1,5 @@
 <%= form_with model: rule, class: "space-y-4" do |f| %>
+  <%= f.hidden_field :scenario_id %>
   <div class="fieldset">
     <%= f.label :payee, class: "label" %>
     <%= f.text_field :payee, required: true, autofocus: true, class: "input w-full", placeholder: "e.g. Origin Energy, Employer" %>

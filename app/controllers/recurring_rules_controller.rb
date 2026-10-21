@@ -1,13 +1,17 @@
 class RecurringRulesController < ApplicationController
   def index
     @tab = params[:tab].presence || (params[:archived].present? ? "paused" : "active")
-    @rules = RecurringRule.where(active: @tab != "paused")
+    @scenario = Scenario.find_by(id: params[:scenario_id])
+    @scenarios = Scenario.order(:name)
+    rule_set = @scenario ? @scenario.recurring_rules : RecurringRule.live
+    @rules = rule_set.where(active: @tab != "paused")
                           .includes(:account, :category, :to_account).ordered
     @next = Recurring.occurrences_for(@rules, Date.current..(Date.current + 90))
                     .group_by { |o| o[:rule].id }
                     .transform_values { |os| os.first[:on] }
     @edit_rule = RecurringRule.find_by(id: params[:edit])
     @new_rule = RecurringRule.new(prefill_params) if params[:new].present?
+    @new_rule&.scenario = @scenario
     @accounts = Account.active.order(:name)
     @accounts_by_id = @accounts.index_by(&:id)
     @categories = Category.active.order(:kind, :name)
@@ -48,7 +52,7 @@ class RecurringRulesController < ApplicationController
 
   def rule_params
     params.require(:recurring_rule).permit(:payee, :account_id, :category_id,
-      :to_account_id, :kind, :amount, :frequency, :every, :start_on, :end_on, :include_in_hybrid)
+      :to_account_id, :kind, :amount, :frequency, :every, :start_on, :end_on, :include_in_hybrid, :scenario_id)
   end
 
   def prefill_params

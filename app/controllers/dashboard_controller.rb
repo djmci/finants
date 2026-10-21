@@ -6,7 +6,7 @@ class DashboardController < ApplicationController
     @accounts = Account.active.includes(:owner).order(:name)
     @liquid = @accounts.select { |a| a.liquid? }
     @uncategorised_count = Transaction.uncategorised.count
-    rules = RecurringRule.active.includes(:account, :category, :to_account)
+    rules = RecurringRule.live.active.includes(:account, :category, :to_account)
     @upcoming = Recurring.occurrences_for(rules, Date.current..(Date.current + 30))
     @upcoming_view = params[:upcoming] == "calendar" ? "calendar" : "list"
     if @upcoming_view == "calendar"
@@ -26,6 +26,15 @@ class DashboardController < ApplicationController
     full = forecast.combined(Date.current..(Date.current + [ @months, 12 ].max.months))
     @settle_amounts = forecast.settlement_amounts || {}
     @projection = full.take_while { |d, _| d <= Date.current + @months.months }
+
+    # Scenario overlay — a second dashed line from the copied rule set.
+    @scenarios = Scenario.order(:name)
+    @scenario = @scenarios.detect { |s| s.id.to_s == params[:scenario] }
+    if @scenario
+      srules = @scenario.recurring_rules.active.includes(:account, :category, :to_account)
+      @scenario_projection = Forecast.new(accounts: scope, rules: srules, basis: @basis)
+                                     .combined(Date.current..(Date.current + @months.months))
+    end
     @history = balance_history(scope)
     @floor = @projection.min_by(&:last)
     @net_flow = ongoing_rate(@projection)

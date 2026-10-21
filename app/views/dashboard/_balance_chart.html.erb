@@ -1,10 +1,12 @@
 <%# Balance chart: solid actual history, dashed projection, today seam.
     Handles negative balances (loan accounts). Locals:
-      history: [[date, cents]], projection: [[date, cents]] %>
+      history: [[date, cents]], projection: [[date, cents]],
+      comparison: [[date, cents]] optional scenario overlay %>
 <%
   w, h = 720, 220
   pad_l, pad_r, pad_t, pad_b = 56, 12, 14, 24
-  values = history.map(&:last) + projection.map(&:last)
+  comparison = local_assigns[:comparison]
+  values = history.map(&:last) + projection.map(&:last) + (comparison&.map(&:last) || [])
   max_v = (values.max || 0).then { |v| v.positive? ? v : 0 }
   min_v = (values.min || 0).then { |v| v.negative? ? v : 0 }
   span_v = [ max_v - min_v, 1 ].max
@@ -37,6 +39,10 @@
   <polygon points="<%= area %>" class="fill-info/10"/>
   <polyline points="<%= to_line.(history) %>" fill="none" class="stroke-info" stroke-width="2" stroke-linejoin="round"/>
   <polyline points="<%= to_line.(fseries) %>" fill="none" class="stroke-info" stroke-width="2" stroke-dasharray="4 3" stroke-linejoin="round"/>
+  <% if comparison %>
+    <% cseries = history.any? ? [ history.last ] + comparison : comparison %>
+    <polyline points="<%= to_line.(cseries) %>" fill="none" class="stroke-warning" stroke-width="2" stroke-dasharray="6 3" stroke-linejoin="round" opacity="0.85"/>
+  <% end %>
   <line x1="<%= x.(today).round(1) %>" x2="<%= x.(today).round(1) %>" y1="<%= pad_t %>" y2="<%= h - pad_b %>"
         class="stroke-base-content/30" stroke-dasharray="2 3" stroke-width="1"/>
   <text x="<%= x.(today) + 4 %>" y="<%= pad_t + 8 %>" font-size="8.5" letter-spacing="0.5" class="fill-base-content/50">TODAY</text>

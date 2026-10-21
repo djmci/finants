@@ -10,9 +10,26 @@
 
   <div class="drawer-content space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <h1 class="font-bold text-xl">Forecast</h1>
+      <h1 class="font-bold text-xl">Forecast<% if @scenario %> — <span class="text-warning"><%= @scenario.name %></span><% end %></h1>
+      <%= form_with url: recurring_rules_path, method: :get, class: "flex items-center gap-2" do %>
+        <%= select_tag :scenario_id, options_for_select([ [ "Live rules", "" ] ] + @scenarios.map { |s| [ s.name, s.id ] }, @scenario&.id.to_s),
+            onchange: "this.form.requestSubmit()", class: "select select-sm w-44" %>
+      <% end %>
+      <div class="dropdown dropdown-end">
+        <label tabindex="0" class="btn btn-ghost btn-sm">+ Scenario</label>
+        <div tabindex="0" class="dropdown-content card card-border bg-base-100 p-3 w-64 z-50 shadow">
+          <%= form_with url: scenarios_path, class: "space-y-2" do %>
+            <%= text_field_tag :name, nil, placeholder: "Scenario name", required: true, class: "input input-sm w-full" %>
+            <%= submit_tag "Create from live rules", class: "btn btn-primary btn-sm w-full" %>
+          <% end %>
+        </div>
+      </div>
+      <% if @scenario %>
+        <%= button_to resync_scenario_path(@scenario), class: "btn btn-ghost btn-sm", title: "Re-copy live rules into this scenario" do %>Resync<% end %>
+        <%= button_to scenario_path(@scenario), method: :delete, class: "btn btn-ghost btn-sm text-error", title: "Delete scenario", data: { turbo_confirm: "Delete this scenario and its rules?" } do %>Delete<% end %>
+      <% end %>
       <% if editing %>
-        <%= link_to recurring_rules_path(new: 1), class: "btn btn-primary btn-sm" do %><%= icon "plus" %> New rule<% end %>
+        <%= link_to recurring_rules_path(new: 1, scenario_id: @scenario&.id), class: "btn btn-primary btn-sm" do %><%= icon "plus" %> New rule<% end %>
       <% else %>
         <label for="rule-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> New rule</label>
       <% end %>
@@ -21,11 +38,11 @@
     <div class="card card-border bg-base-100 overflow-x-auto">
       <div class="flex items-center border-b border-base-300 px-1">
         <div role="tablist" class="tabs tabs-border flex-nowrap">
-          <%= link_to "Active", recurring_rules_path, role: "tab",
+          <%= link_to "Active", recurring_rules_path(scenario_id: @scenario&.id), role: "tab",
               class: "tab py-2 whitespace-nowrap #{@tab == "active" ? "tab-active" : ""}" %>
-          <%= link_to "Paused", recurring_rules_path(tab: "paused"), role: "tab",
+          <%= link_to "Paused", recurring_rules_path(tab: "paused", scenario_id: @scenario&.id), role: "tab",
               class: "tab py-2 whitespace-nowrap #{@tab == "paused" ? "tab-active" : ""}" %>
-          <%= link_to "Detected", recurring_rules_path(tab: "detected"), role: "tab",
+          <%= link_to "Detected", recurring_rules_path(tab: "detected", scenario_id: @scenario&.id), role: "tab",
               class: "tab py-2 whitespace-nowrap #{@tab == "detected" ? "tab-active" : ""}" %>
         </div>
       </div>
@@ -50,7 +67,7 @@
                   <% else %>
                     <%= button_to unarchive_recurring_rule_path(rule), class: "btn btn-ghost btn-circle btn-sm", title: "Resume" do %><%= icon "play", class: "size-4" %><% end %>
                   <% end %>
-                  <%= link_to recurring_rules_path(edit: rule.id, tab: @tab), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
+                  <%= link_to recurring_rules_path(edit: rule.id, tab: @tab, scenario_id: @scenario&.id), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
                     <%= icon "edit", class: "size-4" %>
                   <% end %>
                 </div>
