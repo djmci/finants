@@ -46,3 +46,58 @@ Read `PLAN.md` first — it tracks build phases and open decisions.
 - Create/edit happens in a right-side drawer (anthill pattern:
   `drawer drawer-end` + `redirect_back_to_page`).
 - Archive = `active: false`; domain rows are never deleted.
+
+## UX patterns (keep them consistent)
+
+- **Drawers**: one `.drawer` wrapper per `.drawer-side`. Two sides under
+  one wrapper means *every* toggle opens *both* — the later one wins
+  and hides the intended drawer (this bug bit twice).
+- `data-controller="drawer-open"` + `data-drawer-open-open-value` on the
+  `.drawer-toggle` opens a drawer from a URL param (`?edit=`, `?new=`).
+- **Div balance in index templates**: `.drawer` → `.drawer-content` →
+  `.card`… → close card → close drawer-content → `.drawer-side` → close
+  `.drawer`. A missing `</div>` nests `.drawer-side` inside the scroll
+  pane — the overlay covers the page (can't scroll) and the panel
+  vanishes (this exact bug happened).
+- **Filters** live in a drawer too (`filter-drawer`, `sm:w-80`), opened
+  by a "Filters (n)" button showing the active-filter count — never an
+  inline filter bar.
+- **Pagination**: any transaction list gets 100-row pages
+  (`TransactionsController::PAGE_SIZE`) with Newer/Older footer links
+  that preserve every filter param. Long lists are always paginated.
+- **Tabs**: `tabs tabs-border` inside the card's bordered header
+  (`border-b border-base-300 px-1`), Active/Paused/Detected style.
+- **Helpers render markup**: `money`/`signed_money` return `<span>`s —
+  never interpolate them into HTML attributes (`title="..."` breaks on
+  the inner quotes; use `number_to_currency` inside attributes).
+- **Optional partial locals**: read via `local_assigns[:x]` with a
+  default — every caller must not be forced to pass every local
+  (`suggested`, `once_rules` broke pages that didn't pass them).
+- **Mobile**: `mobile_nav "key", path` + `content_for :mobile_action`.
+
+## Forecast model semantics
+
+- Three bases: `:rules` ("Best case" — scheduled items only),
+  `:hybrid` ("Most likely" — rules + residual drift, the default),
+  `:history` (raw net rate, not surfaced in UI toggles).
+- Seeds are real balances; settle rules pay `-bal` of the card each
+  occurrence and record `settlement_amounts` for display.
+- Drift excludes: transfer pairs, rule-matched payees, one-off-flagged
+  categories (`exclude_from_forecast`), rare-payee outliers, and any
+  positive rows on loans/settle targets (debt plumbing, not income).
+- In `:rules` mode settle targets still accrue *real drift* (the
+  balance is measured data), but the card's own charge-rule deltas are
+  skipped to avoid double-counting.
+- Loan interest is an accrual — never cashflow/health spend. Principal
+  repayments are real cash outflow through the liquid leg.
+- Card payments and loan repayments are deliberately NOT paired (real
+  outflow); only liquid↔liquid transfers pair as internal.
+- "Ongoing rate" = regression slope over the back 60% of the series —
+  a whole-span fit smears one-time stock events (the card payoff).
+
+## House data notes
+
+- Session cookie is `finants_session_id` (Anthill shares localhost's
+  `session_id` — collision logged you out).
+- Income rule payees must match *bank text* ("WAGES IOOF SERVICE CO"),
+  not friendly names — a friendly label masks nothing.

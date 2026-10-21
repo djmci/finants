@@ -18,21 +18,11 @@
       </div>
       <div class="flex items-center gap-2">
         <span class="text-lg font-semibold"><%= money @account.balance_cents %></span>
+        <% active_filters = params.values_at(:q, :uncategorised).count(&:present?) %>
+        <label for="filter-drawer" class="btn btn-ghost btn-sm">Filters<%= " (#{active_filters})" if active_filters.positive? %></label>
         <label for="txn-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> Transaction</label>
       </div>
     </div>
-
-    <%= form_with url: account_path(@account), method: :get, class: "flex items-center gap-2 flex-wrap" do %>
-      <%= search_field_tag :q, params[:q], placeholder: "Search payee…", class: "input input-sm w-48" %>
-      <label class="label cursor-pointer gap-1.5 text-sm">
-        <%= check_box_tag :uncategorised, 1, params[:uncategorised].present?, class: "checkbox checkbox-sm" %>
-        Uncategorised only
-      </label>
-      <%= submit_tag "Filter", class: "btn btn-sm" %>
-      <% if params[:q].present? || params[:uncategorised].present? %>
-        <%= link_to "Clear", account_path(@account), class: "btn btn-ghost btn-sm" %>
-      <% end %>
-    <% end %>
 
     <div class="card card-border bg-base-100 overflow-x-auto">
       <table class="table">
@@ -58,7 +48,7 @@
               <td class="text-right hidden sm:table-cell text-base-content/70"><%= money @balances[txn.id] %></td>
               <td class="text-right whitespace-nowrap w-20">
                 <div class="flex items-center justify-end">
-                  <%= link_to account_path(@account, edit: txn.id, q: params[:q], uncategorised: params[:uncategorised]), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
+                  <%= link_to account_path(@account, edit: txn.id, q: params[:q], uncategorised: params[:uncategorised], page: params[:page]), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
                     <%= icon "edit", class: "size-4" %>
                   <% end %>
                 </div>
@@ -70,6 +60,22 @@
           <% end %>
         </tbody>
       </table>
+      <% if @pages > 1 %>
+        <div class="flex items-center justify-between px-4 py-2.5 border-t border-base-300">
+          <% params_page = params.permit(:q, :uncategorised) %>
+          <% if @page > 1 %>
+            <%= link_to "← Newer", account_path(@account, params_page.merge(page: @page - 1)), class: "btn btn-ghost btn-sm" %>
+          <% else %>
+            <span></span>
+          <% end %>
+          <span class="text-xs text-base-content/50">Page <%= @page %> of <%= @pages %></span>
+          <% if @page < @pages %>
+            <%= link_to "Older →", account_path(@account, params_page.merge(page: @page + 1)), class: "btn btn-ghost btn-sm" %>
+          <% else %>
+            <span></span>
+          <% end %>
+        </div>
+      <% end %>
     </div>
   </div>
 
@@ -81,6 +87,33 @@
         <label for="txn-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
       </div>
       <%= render "transactions/form", txn: @edit_txn || Transaction.new(account: @account, posted_on: Date.current), accounts: @accounts, categories: @categories, once_rules: @once_rules %>
+    </div>
+  </div>
+</div>
+
+<div class="drawer drawer-end">
+  <input id="filter-drawer" type="checkbox" class="drawer-toggle" />
+  <div class="drawer-side z-50">
+    <label for="filter-drawer" aria-label="close drawer" class="drawer-overlay"></label>
+    <div class="bg-base-100 min-h-full w-full sm:w-80 p-5 border-l border-base-300 overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="font-bold text-lg">Filters</h2>
+        <label for="filter-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
+      </div>
+      <%= form_with url: account_path(@account), method: :get, class: "space-y-3" do %>
+        <div class="fieldset">
+          <label class="label text-xs">Search</label>
+          <%= search_field_tag :q, params[:q], placeholder: "Payee contains…", class: "input input-sm w-full" %>
+        </div>
+        <label class="label cursor-pointer gap-1.5 text-sm">
+          <%= check_box_tag :uncategorised, 1, params[:uncategorised].present?, class: "checkbox checkbox-sm" %>
+          Uncategorised only
+        </label>
+        <div class="flex gap-2">
+          <%= submit_tag "Apply", class: "btn btn-primary btn-sm flex-1" %>
+          <%= link_to "Clear", account_path(@account), class: "btn btn-ghost btn-sm" %>
+        </div>
+      <% end %>
     </div>
   </div>
 </div>

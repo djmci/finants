@@ -22,6 +22,9 @@ class AccountsController < ApplicationController
     @transactions = @transactions.where("payee ILIKE ?", "%#{params[:q].strip}%") if params[:q].present?
     @transactions = @transactions.ordered
     @balances = @account.running_balances
+    @pages = (@transactions.count.to_f / TransactionsController::PAGE_SIZE).ceil
+    @page = params[:page].to_i.clamp(1, [ @pages, 1 ].max)
+    @transactions = @transactions.offset((@page - 1) * TransactionsController::PAGE_SIZE).limit(TransactionsController::PAGE_SIZE)
     @edit_txn = @account.transactions.find_by(id: params[:edit])
     @accounts = Account.active.order(:name)
     @categories = Category.active.order(:kind, :name)
