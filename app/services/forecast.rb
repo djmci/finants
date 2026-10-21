@@ -99,11 +99,15 @@ class Forecast
   end
 
   # [[account_id, category_id, total_cents]] — real 90d spend that
-  # isn't transfers, rule-matched, or a rare outlier.
+  # isn't transfers, rule-matched, a rare outlier, or a category the
+  # user flagged as one-off (e.g. the Mexico trip — excluded so it
+  # doesn't inflate the everyday-spend rate).
   def discretionary_rows(range)
+    excluded_cats = Category.where(exclude_from_forecast: true).pluck(:id).to_set
     from = range.begin - @window_days.days
     combos = Transaction.where(account: @all_accounts, posted_on: from..(range.begin - 1),
                                transfer_pair_id: nil)
+                        .where.not(category_id: excluded_cats)
                         .where("amount_cents < 0")
                         .group(:account_id, :category_id, :payee, :amount_cents).count
     rules_by_account = @rules.select(&:active?).group_by(&:account_id)
@@ -127,36 +131,12 @@ class Forecast
   end
 
   # {account_id => balance in cents at range.begin}
-  # Settle targets seed from the accrual since the last paired payment
-  # credit — the real "amount due" — not opening_balance + full history.
+  # Settle uses the full computed balance — cards pay the statement,
+  # not the post-payment accrual, so the owed figure includes the
+  # persistent cycle float.
   def seed_balances(range)
     sums = Transaction.where(account: @all_accounts).where("posted_on < ?", range.begin)
                       .group(:account_id).sum(:amount_cents)
-    seeds = @all_accounts.to_h { |a| [ a.id, a.opening_balance_cents + sums.fetch(a.id, 0) ] }
-    @rules.select(&:settle?).each do |rule|
-      if (anchor = last_payment_credit(rule, range.begin))
-        seeds[rule.to_account_id] = Transaction.where(account: rule.to_account, transfer_pair_id: nil)
-                                             .where("posted_on > ?", anchor.posted_on)
-                                             .where("posted_on < ?", range.begin)
-                                             .sum(:amount_cents)
-      end
-    end
-    seeds
-  end
-
-  # The latest credit on the settle target that pairs to a bank-side
-  # payment — near-identical amount, within a few days' posting lag.
-  def last_payment_credit(rule, upto)
-    key = PayeeRule.detection_key(rule.payee)
-    payments = Transaction.where(account: rule.account, transfer_pair_id: nil)
-                          .where("posted_on < ?", upto).where("amount_cents < 0")
-                          .select { |t| PayeeRule.detection_key(t.payee).include?(key) }
-    Transaction.where(account: rule.to_account, transfer_pair_id: nil)
-               .where("posted_on < ?", upto).where("amount_cents > 0")
-               .select do |c|
-      # Card credit posts up to 5d before / 2d after the bank debit.
-      payments.any? { |p| (c.amount_cents - p.amount_cents.abs).abs <= [ c.amount_cents * 0.02, 500 ].max &&
-                          c.posted_on.between?(p.posted_on - 5.days, p.posted_on + 2.days) }
-    end.max_by(&:posted_on)
+    @all_accounts.to_h { |a| [ a.id, a.opening_balance_cents + sums.fetch(a.id, 0) ] }
   end
 end

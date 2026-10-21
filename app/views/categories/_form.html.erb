@@ -12,5 +12,9 @@
     <%= f.collection_select :parent_id, parents, :id, :display_name, { include_blank: "None" }, class: "select w-full" %>
     <p class="text-xs text-base-content/50 mt-1">Subcategories must match their parent's kind.</p>
   </div>
+  <label class="flex items-start gap-2 cursor-pointer">
+    <%= f.check_box :exclude_from_forecast, class: "checkbox checkbox-sm mt-0.5" %>
+    <span class="text-sm">One-off spend <span class="text-base-content/50">— excluded from forecast drift (e.g. a holiday)</span></span>
+  </label>
   <%= f.submit category.persisted? ? "Save category" : "Add category", class: "btn btn-primary w-full" %>
 <% end %>
