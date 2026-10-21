@@ -49,7 +49,7 @@
   </div>
   <label class="flex items-start gap-2 cursor-pointer">
     <%= f.check_box :mask_history, class: "checkbox checkbox-sm mt-0.5" %>
-    <span class="text-sm">Model this spend <span class="text-base-content/50">— matching history leaves the drift pool; untick to let real transactions speak instead</span></span>
+    <span class="text-sm">This rule covers the spend <span class="text-base-content/50">— leave on: matching real transactions won't double-count in the forecast</span></span>
   </label>
   <%= f.submit rule.persisted? ? "Save rule" : "Add rule", class: "btn btn-primary w-full" %>
 <% end %>
