@@ -36,10 +36,19 @@ class Forecast
     settles = settle_occurrences(range)
     disc = @basis == :rules ? {} : discretionary_daily(range)
     if @basis == :history
-      # Tracked spend = the account's real net daily rate — real
-      # income counts too, not just outflow.
+      # Tracked spend = the real net daily rate — income counts too.
       inflow = inflow_daily(range)
       disc = disc.merge(inflow) { |_, outflow, income| outflow + income }
+      # Debt accrual is spend too: a card drifting more negative IS
+      # money leaving, it just hasn't hit cash yet. Roll each
+      # out-of-scope non-loan account's net rate onto the lead liquid.
+      primary = @accounts.detect(&:liquid?)&.id
+      if primary
+        (Account.active - @all_accounts).reject(&:loan?).each do |a|
+          rate = net_drift_for(a, range)
+          disc[primary] = (disc[primary] || 0) + rate if rate != 0
+        end
+      end
     end
     bal = seed_balances(range)
     points = @all_accounts.index_with { |a| [] }
@@ -111,6 +120,16 @@ class Forecast
   def discretionary_daily(range)
     discretionary_rows(range).group_by(&:first)
                              .transform_values { |rows| rows.sum(&:last) / @window_days }
+  end
+
+  # Net daily drift for one account — spend + income, transfers and
+  # one-off categories excluded, just like the main drift.
+  def net_drift_for(account, range)
+    excluded_cats = Category.where(exclude_from_forecast: true).pluck(:id)
+    from = range.begin - @window_days.days
+    Transaction.where(account:, posted_on: from..(range.begin - 1), transfer_pair_id: nil)
+               .where.not(category_id: excluded_cats)
+               .sum(:amount_cents) / @window_days
   end
 
   # {account_id => +cents/day} — real income in the window, same

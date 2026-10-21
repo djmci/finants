@@ -4,6 +4,15 @@ class AccountsController < ApplicationController
     @accounts = Account.where(active: !@archived).includes(:owner).order(:name)
     @edit_account = Account.find_by(id: params[:edit])
     @members = User.order(:name)
+
+    # Balance at each recent month-end — account opening + txns to date.
+    @history_dates = (5.downto(1).map { |m| (Date.current - m.months).end_of_month } + [ Date.current ]).uniq
+    sums = @history_dates.index_with do |d|
+      Transaction.where("posted_on <= ?", d).group(:account_id).sum(:amount_cents)
+    end
+    @balance_history = @accounts.to_h do |a|
+      [ a.id, @history_dates.map { |d| a.opening_balance_cents + sums[d].fetch(a.id, 0) } ]
+    end
   end
 
   def show

@@ -15,6 +15,8 @@ class Account < ApplicationRecord
 
   def liquid? = kind.in?(LIQUID)
 
+  def loan? = kind == "loan"
+
   scope :active, -> { where(active: true) }
   scope :liquid, -> { where(kind: LIQUID) }
   scope :joint, -> { where(owner_id: nil) }

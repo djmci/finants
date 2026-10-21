@@ -62,6 +62,32 @@
         </tbody>
       </table>
     </div>
+
+    <div class="card card-border bg-base-100 overflow-x-auto">
+      <div class="border-b border-base-300 px-4 py-2">
+        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Balance over time</h2>
+      </div>
+      <table class="table table-sm">
+        <thead>
+          <tr class="text-xs text-base-content/50">
+            <th>Account</th>
+            <% @history_dates.each do |d| %>
+              <th class="text-right"><%= d == Date.current ? "Today" : d.strftime("%b %y") %></th>
+            <% end %>
+          </tr>
+        </thead>
+        <tbody>
+          <% @accounts.each do |account| %>
+            <tr class="hover:bg-base-200/50">
+              <td class="font-medium whitespace-nowrap"><%= account.name %></td>
+              <% @balance_history[account.id].each do |cents| %>
+                <td class="text-right <%= "text-error" if cents.negative? %>"><%= signed_money cents %></td>
+              <% end %>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
   </div>
 
   <div class="drawer-side z-50">
