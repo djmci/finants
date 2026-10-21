@@ -78,7 +78,11 @@ class HealthReport
                       .where(posted_on: (@today - DRIFT_DAYS.days)..@today)
                       .includes(:category)
     buckets = Hash.new(0)
+    settle_targets = @rules.select(&:settle?).map(&:to_account_id)
     txns.each do |t|
+      # Credits on a settle target are payment receipts — they mirror
+      # the excluded bank-side leg, they'd only net the charges away.
+      next if t.amount_cents.positive? && settle_targets.include?(t.account_id)
       rule = RecurringRule.match_for(account: t.account, payee: t.payee, amount_cents: t.amount_cents)
       next if rule&.settle?
       cat = t.category || rule&.category
