@@ -50,11 +50,12 @@ class HealthReport
     end
   end
 
-  # {month => {category_name => cents}} — real income by bucket.
+  # {month => {category_name => cents}} — real income by bucket over
+  # the same 12-month window the Tracked-spend basis reads.
   def income_by_category
     rows = Transaction.where(account: @liquid, transfer_pair_id: nil)
                       .where("amount_cents > 0")
-                      .where("posted_on > ?", @today - TREND_MONTHS.months)
+                      .where("posted_on > ?", @today - 12.months)
                       .includes(:category)
     grid = rows.group_by { |t| t.posted_on.beginning_of_month }
                .transform_values do |ts|
