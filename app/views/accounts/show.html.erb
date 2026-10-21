@@ -19,7 +19,7 @@
       <div class="flex items-center gap-2">
         <span class="text-lg font-semibold"><%= money @account.balance_cents %></span>
         <% active_filters = params.values_at(:q, :uncategorised).count(&:present?) %>
-        <label for="filter-drawer" class="btn btn-ghost btn-sm">Filters<%= " (#{active_filters})" if active_filters.positive? %></label>
+        <label for="filter-drawer" class="btn btn-ghost btn-sm"><%= icon "filter" %> Filters<% if active_filters.positive? %> <span class="badge badge-primary badge-xs"><%= active_filters %></span><% end %></label>
         <label for="txn-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> Transaction</label>
       </div>
     </div>
