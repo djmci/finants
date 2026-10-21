@@ -28,16 +28,27 @@ class CategoriesController < ApplicationController
     category = Category.new(category_params)
     if category.save
       respond_to do |format|
-        format.turbo_stream { @category = category; @select_id = params[:select_id] }
+        # select_id is only sent by the inline drawer mini-form —
+        # the real category drawer needs a normal redirect back.
+        format.turbo_stream do
+          if params[:select_id].present?
+            @category = category; @select_id = params[:select_id]
+          else
+            redirect_back_to_page categories_path, notice: "Category added."
+          end
+        end
         format.html { redirect_back_to_page categories_path, notice: "Category added." }
       end
     else
       respond_to do |format|
         format.turbo_stream do
-          @category = category
-          render turbo_stream: turbo_stream.replace("new_category_frame",
-            partial: "new_inline", locals: { category:, select_id: params[:select_id] }),
-            status: :unprocessable_entity
+          if params[:select_id].present?
+            render turbo_stream: turbo_stream.replace("new_category_frame",
+              partial: "new_inline", locals: { category:, select_id: params[:select_id] }),
+              status: :unprocessable_entity
+          else
+            redirect_back_to_page categories_path(new: 1), alert: category.errors.full_messages.to_sentence
+          end
         end
         format.html { redirect_back_to_page categories_path(new: 1), alert: category.errors.full_messages.to_sentence }
       end
