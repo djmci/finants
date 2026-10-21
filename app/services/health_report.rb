@@ -74,8 +74,10 @@ class HealthReport
   # still count — that's where the spend happens.
   def category_spend
     spend_accounts = Account.active.select { |a| a.kind != "loan" }
+    one_offs = Category.where(exclude_from_forecast: true).pluck(:id)
     txns = Transaction.where(account: spend_accounts, transfer_pair_id: nil)
                       .where(posted_on: (@today - DRIFT_DAYS.days)..@today)
+                      .where.not(category_id: one_offs)
                       .includes(:category)
     buckets = Hash.new(0)
     settle_targets = @rules.select(&:settle?).map(&:to_account_id)
