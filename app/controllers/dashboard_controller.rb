@@ -41,12 +41,14 @@ class DashboardController < ApplicationController
 
   private
 
-  # Least-squares slope of the projection, in cents/month — the ongoing
-  # rate, immune to one-time shocks like the card's debt payoff.
+  # Least-squares slope over the back 60% of the projection — the first
+  # chunk carries one-time stock events (e.g. the card's debt payoff)
+  # that would smear a whole-span fit into the "ongoing" rate.
   def ongoing_rate(points)
     return 0 if points.size < 2
-    xs = (0...points.size).to_a
-    ys = points.map(&:last)
+    tail = points.drop((points.size * 0.4).floor)
+    xs = (0...tail.size).to_a
+    ys = tail.map(&:last)
     n = xs.size
     slope = (n * xs.zip(ys).sum { |x, y| x * y } - xs.sum * ys.sum) /
             (n * xs.sum { |x| x * x } - xs.sum**2).to_f
