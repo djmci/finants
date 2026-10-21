@@ -13,9 +13,6 @@
       <%= f.label :amount, class: "label" %>
       <%= f.number_field :amount, step: "0.01", min: "0", value: (rule.settle? && rule.amount_cents&.zero? ? nil : rule.amount), class: "input w-full" %>
       <p class="text-xs text-base-content/50 mt-1">Leave blank for Balance payment — it pays whatever brings the target to zero.</p>
-      <%= f.label :installments, "# of payments", class: "label" %>
-      <%= f.number_field :installments, min: "1", step: "1", class: "input w-full", placeholder: "e.g. 3" %>
-      <p class="text-xs text-base-content/50 mt-1">Balance payment only — splits each bill across this many payments.</p>
     </div>
   </div>
   <div class="fieldset">

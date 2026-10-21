@@ -69,23 +69,7 @@ class Forecast
     range.each do |d|
       @all_accounts.each { |a| bal[a.id] += deltas[[ a.id, d ]] + (disc[a.id] || 0) }
       (settles[d] || []).each do |rule|
-        n = rule.installments.to_i
-        # Split the starting bill into n equal principal payments; each
-        # settle also covers the new charges accrued since, so the card
-        # still zeroes out after n payments.
-        if n > 1 && !installment_plans.key?(rule.id) && bal[rule.to_account_id] < 0
-          installment_plans[rule.id] = { principal: -bal[rule.to_account_id], paid: 0, remaining: n }
-        end
-        plan = installment_plans[rule.id]
-        amt = if plan && plan[:remaining] > 0
-          slice = plan[:principal] / n
-          new_charges = -bal[rule.to_account_id] - (plan[:principal] - plan[:paid])
-          plan[:paid] += slice
-          plan[:remaining] -= 1
-          new_charges + slice
-        else
-          -bal[rule.to_account_id]
-        end
+        amt = -bal[rule.to_account_id]
         @settlement_amounts[[ rule.id, d ]] = amt
         bal[rule.to_account_id] += amt
         bal[rule.account_id] -= amt
