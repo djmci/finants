@@ -1,7 +1,7 @@
 class RecurringRulesController < ApplicationController
   def index
-    @archived = params[:archived].present?
-    @rules = RecurringRule.where(active: !@archived)
+    @tab = params[:tab].presence || (params[:archived].present? ? "paused" : "active")
+    @rules = RecurringRule.where(active: @tab != "paused")
                           .includes(:account, :category, :to_account).ordered
     @next = Recurring.occurrences_for(@rules, Date.current..(Date.current + 90))
                     .group_by { |o| o[:rule].id }
@@ -9,9 +9,16 @@ class RecurringRulesController < ApplicationController
     @edit_rule = RecurringRule.find_by(id: params[:edit])
     @new_rule = RecurringRule.new(prefill_params) if params[:new].present?
     @accounts = Account.active.order(:name)
-    @suggestions = RecurringSuggestions.call unless @archived
     @accounts_by_id = @accounts.index_by(&:id)
     @categories = Category.active.order(:kind, :name)
+
+    if @tab == "detected"
+      @suggestions = RecurringSuggestions.call
+    elsif @tab == "calendar"
+      @cal_month = (Date.strptime(params[:month].to_s, "%Y-%m") rescue Date.current).beginning_of_month
+      @cal_days = Recurring.occurrences_for(RecurringRule.active, @cal_month..@cal_month.end_of_month)
+                           .group_by { |o| o[:on] }
+    end
   end
 
   def create
