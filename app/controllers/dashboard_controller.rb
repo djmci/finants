@@ -1,7 +1,7 @@
 class DashboardController < ApplicationController
   HISTORY_DAYS = 90
   LIQUID_KINDS = %w[everyday savings cash].freeze
-  HORIZONS = { "Now" => 1.month, "Near" => 3.months, "Far" => 12.months }.freeze
+  HORIZONS = { "Next month" => 1.month, "Next quarter" => 3.months, "Next year" => 12.months }.freeze
 
   def index
     @accounts = Account.active.includes(:owner).order(:name)
@@ -26,6 +26,7 @@ class DashboardController < ApplicationController
     # nature, not a breach.
     cash = Forecast.new(accounts: @liquid, rules: rules)
                    .combined(Date.current..(Date.current + 12.months))
+    @cash_now = cash.first.last
     @health = HORIZONS.to_h { |name, span| [ name, checkpoint(cash, Date.current + span) ] }
     monitor = CashflowMonitor.new(warn: Setting.alert_warn_cents, critical: Setting.alert_critical_cents)
     @breaches = monitor.breaches(cash)

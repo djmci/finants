@@ -11,6 +11,11 @@
   </div>
 
   <div class="stats stats-vertical sm:stats-horizontal card card-border bg-base-100 w-full">
+    <div class="stat">
+      <div class="stat-title">Cash on hand — <%= Date.current.strftime("%-d %b %Y") %></div>
+      <div class="stat-value text-2xl"><%= signed_money @cash_now %></div>
+      <div class="stat-desc">across <%= pluralize(@liquid.size, "liquid account") %></div>
+    </div>
     <% @health.each do |name, h| %>
       <div class="stat">
         <div class="stat-title"><%= name %> — <%= h[:date].strftime("%-d %b %Y") %></div>
