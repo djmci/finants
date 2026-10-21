@@ -11,9 +11,10 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     get root_url
     assert_response :success
     assert_match "Forecast", response.body
-    assert_match "Now", response.body
-    assert_match "Near", response.body
-    assert_match "Far", response.body
+    assert_match "Cash on hand", response.body
+    assert_match "Next month", response.body
+    assert_match "Next quarter", response.body
+    assert_match "Next year", response.body
   end
 
   test "index scopes to any single account" do

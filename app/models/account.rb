@@ -2,6 +2,7 @@ class Account < ApplicationRecord
   include DollarField
 
   KINDS = %w[everyday savings credit cash loan].freeze
+  LIQUID = %w[everyday savings cash].freeze
 
   dollar_field :opening_balance
 
@@ -12,7 +13,10 @@ class Account < ApplicationRecord
   validates :name, presence: true
   validates :kind, inclusion: { in: KINDS }
 
+  def liquid? = kind.in?(LIQUID)
+
   scope :active, -> { where(active: true) }
+  scope :liquid, -> { where(kind: LIQUID) }
   scope :joint, -> { where(owner_id: nil) }
 
   def balance_cents(on: nil)

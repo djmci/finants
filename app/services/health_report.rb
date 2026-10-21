@@ -9,7 +9,7 @@ class HealthReport
 
   def initialize(today: Date.current)
     @today = today
-    @liquid = Account.active.select { |a| LIQUID_KINDS.include?(a.kind) }
+    @liquid = Account.active.select { |a| a.liquid? }
     @rules = RecurringRule.active.includes(:account, :to_account, :category)
     @projection = Forecast.new(accounts: @liquid, rules: @rules)
                           .combined(@today..(@today + 12.months))

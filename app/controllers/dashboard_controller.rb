@@ -1,11 +1,10 @@
 class DashboardController < ApplicationController
   HISTORY_DAYS = 90
-  LIQUID_KINDS = %w[everyday savings cash].freeze
   HORIZONS = { "Next month" => 1.month, "Next quarter" => 3.months, "Next year" => 12.months }.freeze
 
   def index
     @accounts = Account.active.includes(:owner).order(:name)
-    @liquid = @accounts.select { |a| LIQUID_KINDS.include?(a.kind) }
+    @liquid = @accounts.select { |a| a.liquid? }
     @uncategorised_count = Transaction.uncategorised.count
     rules = RecurringRule.active.includes(:account, :category, :to_account)
     @upcoming = Recurring.occurrences_for(rules, Date.current..(Date.current + 30))
