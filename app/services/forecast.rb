@@ -35,6 +35,12 @@ class Forecast
     deltas = occurrence_deltas(range)
     settles = settle_occurrences(range)
     disc = @basis == :rules ? {} : discretionary_daily(range)
+    if @basis == :history
+      # Tracked spend = the account's real net daily rate — real
+      # income counts too, not just outflow.
+      inflow = inflow_daily(range)
+      disc = disc.merge(inflow) { |_, outflow, income| outflow + income }
+    end
     bal = seed_balances(range)
     points = @all_accounts.index_with { |a| [] }
     range.each do |d|
@@ -107,6 +113,19 @@ class Forecast
                              .transform_values { |rows| rows.sum(&:last) / @window_days }
   end
 
+  # {account_id => +cents/day} — real income in the window, same
+  # exclusions as spend (transfers out, one-off categories out).
+  def inflow_daily(range)
+    excluded_cats = Category.where(exclude_from_forecast: true).pluck(:id)
+    from = range.begin - @window_days.days
+    sums = Transaction.where(account: @all_accounts, posted_on: from..(range.begin - 1),
+                             transfer_pair_id: nil)
+                      .where.not(category_id: excluded_cats)
+                      .where("amount_cents > 0")
+                      .group(:account_id).sum(:amount_cents)
+    sums.transform_values { |c| c / @window_days }
+  end
+
   # [[account_id, category_id, total_cents]] — real 90d spend that
   # isn't transfers, rule-matched, a rare outlier, or a category the
   # user flagged as one-off (e.g. the Mexico trip — excluded so it
@@ -124,11 +143,13 @@ class Forecast
       samples = ac.flat_map { |(_, _, _, cents), n| [ cents.abs ] * n }
       median = samples.sort[samples.size / 2] || 0
       cap = median * 4
+      # Rare = the payee itself appears ≤2 times in the window, whatever
+      # the amounts — a monthly variable bill is not a one-off.
+      payee_hits = ac.group_by { |(_, _, payee, _), _| PayeeRule.detection_key(payee) }
+                     .transform_values { |list| list.sum(&:last) }
       ac.filter_map do |(_, cid, payee, cents), count|
-        # Rare outliers — one-off transfers like moving cash between own
-        # accounts — shouldn't feed the everyday-spend estimate.
-        next if count <= 2 && cents.abs > cap
         key = PayeeRule.detection_key(payee)
+        next if payee_hits[key] <= 2 && cents.abs > cap
         matched = rules_by_account.fetch(account_id, []).any? do |r|
           rkey = PayeeRule.detection_key(r.payee)
           rkey.present? && key.include?(rkey) &&
