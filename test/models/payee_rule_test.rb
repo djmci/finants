@@ -46,4 +46,21 @@ class PayeeRuleTest < ActiveSupport::TestCase
     PayeeRule.create!(pattern: "BIGW", category: categories(:food), auto: false)
     assert_nil txn.reload.category
   end
+
+
+  test "learn_rule=false on a categorised txn writes no rule" do
+    assert_no_difference "PayeeRule.count" do
+      Transaction.create!(account: accounts(:everyday), posted_on: Date.current,
+                          payee: "UNIQUE MERCHANT XYZ", amount_cents: -100,
+                          category: categories(:food), learn_rule: false)
+    end
+  end
+
+  test "categorising a txn learns a rule by default" do
+    assert_difference "PayeeRule.count", 1 do
+      Transaction.create!(account: accounts(:everyday), posted_on: Date.current,
+                          payee: "REPEAT MERCHANT ABC", amount_cents: -100,
+                          category: categories(:food))
+    end
+  end
 end

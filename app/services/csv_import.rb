@@ -120,6 +120,7 @@ class CsvImport
           posted_on: parsed[:posted_on], payee: parsed[:payee],
           amount_cents: parsed[:amount_cents],
           category: PayeeRule.for(parsed[:payee], amount_cents: parsed[:amount_cents], auto_only: true),
+          learn_rule: false,
           import_hash: hash
         )
         created += 1

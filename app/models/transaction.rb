@@ -10,8 +10,12 @@ class Transaction < ApplicationRecord
   validates :posted_on, presence: true
   validates :amount_cents, presence: true, numericality: { other_than: 0 }
 
+  # Whether saving this txn teaches a payee→category rule — the form
+  # checkbox, and skipped on import (the category came FROM a rule).
+  attribute :learn_rule, :boolean, default: true
+
   # Payee → category rules learned whenever a categorised txn has a payee.
-  after_save :learn_payee_rule, if: -> { saved_change_to_category_id? && category_id.present? && payee.present? }
+  after_save :learn_payee_rule, if: -> { learn_rule && saved_change_to_category_id? && category_id.present? && payee.present? }
   # Link to a matching recurring rule (payee substring + same amount).
   before_validation :suggest_rule, if: -> { recurring_rule_id.nil? && account_id.present? && payee.present? && amount_cents.present? }
   # A linked one-off rule resolves itself — the planned expense occurred.

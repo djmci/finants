@@ -26,6 +26,10 @@
     <%= f.collection_select :category_id, categories, :id, :display_name, { include_blank: "Uncategorised" }, class: "select w-full" %>
     <%= render "categories/new_link", select_id: "transaction_category_id" %>
   </div>
+  <label class="flex items-center gap-2 cursor-pointer">
+    <%= f.check_box :learn_rule, { checked: txn.learn_rule != false, class: "checkbox checkbox-sm" } %>
+    <span class="text-sm">Learn a rule for this payee <span class="text-base-content/50">— untick for one-offs</span></span>
+  </label>
   <% if once_rules.any? %>
     <div class="fieldset">
       <%= f.label :recurring_rule_id, "Planned expense", class: "label" %>

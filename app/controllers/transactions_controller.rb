@@ -65,7 +65,7 @@ class TransactionsController < ApplicationController
   private
 
   def txn_params
-    params.require(:transaction).permit(:account_id, :posted_on, :payee, :amount, :category_id, :notes, :recurring_rule_id)
+    params.require(:transaction).permit(:account_id, :posted_on, :payee, :amount, :category_id, :notes, :recurring_rule_id, :learn_rule)
   end
 
   def apply_direction(txn)
