@@ -62,7 +62,19 @@ class HealthReport
                  ts.group_by { |t| t.category&.display_name || "Uncategorised" }
                    .transform_values { |list| list.sum(&:amount_cents) }
                end
-    grid.sort.reverse.to_h
+    grid.sort.to_h
+  end
+
+  # {month => {category_name => cents}} — projected income by bucket,
+  # from real occurrence dates (fortnightly cadence kept honest).
+  def forecast_income_by_category(months: 4)
+    rules = @rules.select { |r| r.kind == "income" }
+    Recurring.occurrences_for(rules, @today..(@today + months.months))
+            .group_by { |o| o[:on].beginning_of_month }
+            .transform_values do |os|
+              os.group_by { |o| o[:rule].category&.display_name || o[:rule].payee }
+                .transform_values { |list| list.sum { |o| o[:rule].amount_cents } }
+            end.sort.to_h
   end
 
   # Last TREND_MONTHS calendar months of actual income vs spend on the
