@@ -21,14 +21,14 @@
     <div class="card card-border bg-base-100 overflow-x-auto">
       <div class="flex items-center border-b border-base-300 px-1">
         <div role="tablist" class="tabs tabs-border flex-nowrap">
+          <%= link_to "Calendar", recurring_rules_path(tab: "calendar"), role: "tab",
+              class: "tab py-2 whitespace-nowrap #{@tab == "calendar" ? "tab-active" : ""}" %>
           <%= link_to "Active", recurring_rules_path, role: "tab",
               class: "tab py-2 whitespace-nowrap #{@tab == "active" ? "tab-active" : ""}" %>
           <%= link_to "Paused", recurring_rules_path(tab: "paused"), role: "tab",
               class: "tab py-2 whitespace-nowrap #{@tab == "paused" ? "tab-active" : ""}" %>
           <%= link_to "Detected", recurring_rules_path(tab: "detected"), role: "tab",
               class: "tab py-2 whitespace-nowrap #{@tab == "detected" ? "tab-active" : ""}" %>
-          <%= link_to "Calendar", recurring_rules_path(tab: "calendar"), role: "tab",
-              class: "tab py-2 whitespace-nowrap #{@tab == "calendar" ? "tab-active" : ""}" %>
         </div>
       </div>
       <% if %w[active paused].include?(@tab) %>
