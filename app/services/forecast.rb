@@ -35,10 +35,13 @@ class Forecast
     deltas = occurrence_deltas(range)
     settles = settle_occurrences(range)
     disc = @basis == :rules ? {} : discretionary_daily(range)
-    if @basis == :history
-      # Tracked spend = the real net daily rate — income counts too.
+    if @basis != :rules
+      # Real income that no rule covers (reimbursements, refunds, misc)
+      # drifts in too — masked exactly like spend.
       inflow = inflow_daily(range)
       disc = disc.merge(inflow) { |_, outflow, income| outflow + income }
+    end
+    if @basis == :history
       # Debt accrual is spend too: a card drifting more negative IS
       # money leaving, it just hasn't hit cash yet. Roll each
       # out-of-scope non-loan account's net rate onto the lead liquid.
@@ -132,17 +135,40 @@ class Forecast
                .sum(:amount_cents) / @window_days
   end
 
-  # {account_id => +cents/day} — real income in the window, same
-  # exclusions as spend (transfers out, one-off categories out).
+  # {account_id => +cents/day} — real income the rules don't cover.
+  # Same exclusions as spend: transfers, one-off categories, rare
+  # outliers, and rows a rule already models (in hybrid).
   def inflow_daily(range)
     excluded_cats = Category.where(exclude_from_forecast: true).pluck(:id)
     from = range.begin - @window_days.days
-    sums = Transaction.where(account: @all_accounts, posted_on: from..(range.begin - 1),
-                             transfer_pair_id: nil)
-                      .where.not(category_id: excluded_cats)
-                      .where("amount_cents > 0")
-                      .group(:account_id).sum(:amount_cents)
-    sums.transform_values { |c| c / @window_days }
+    # Only non-loan accounts produce income — a positive loan/card row
+    # is debt plumbing (payment credit, refund), not money in.
+    settle_targets = @rules.select(&:settle?).map(&:to_account_id)
+    combos = Transaction.where(account: @all_accounts.reject(&:loan?), posted_on: from..(range.begin - 1),
+                               transfer_pair_id: nil)
+                        .where.not(account_id: settle_targets)
+                        .where.not(category_id: excluded_cats)
+                        .where("amount_cents > 0")
+                        .group(:account_id, :payee, :amount_cents).count
+    rules_by_account = @rules.select(&:active?).group_by(&:account_id)
+    combos.group_by { |(account_id, _, _), _| account_id }.flat_map do |account_id, ac|
+      samples = ac.flat_map { |(_, _, cents), n| [ cents ] * n }
+      median = samples.sort[samples.size / 2] || 0
+      cap = median * 4
+      payee_hits = ac.group_by { |(_, payee, _), _| PayeeRule.detection_key(payee) }
+                     .transform_values { |list| list.sum(&:last) }
+      ac.filter_map do |(_, payee, cents), count|
+        key = PayeeRule.detection_key(payee)
+        next if payee_hits[key] <= 2 && cents > cap
+        # Payee-only match for income — wage amounts wobble by cents,
+        # an exact-amount check would leak the salary back into drift.
+        matched = rules_by_account.fetch(account_id, []).any? do |r|
+          rkey = PayeeRule.detection_key(r.payee)
+          rkey.present? && key.include?(rkey)
+        end
+        [ account_id, cents * count ] unless matched
+      end
+    end.group_by(&:first).transform_values { |rows| rows.sum(&:last) / @window_days }
   end
 
   # [[account_id, category_id, total_cents]] — real 90d spend that

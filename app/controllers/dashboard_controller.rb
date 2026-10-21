@@ -18,7 +18,7 @@ class DashboardController < ApplicationController
     @projection = full.take_while { |d, _| d <= Date.current + @months.months }
     @history = balance_history(scope)
     @floor = @projection.min_by(&:last)
-    @net_flow = @projection.size > 1 ? (@projection.last.last - @projection.first.last) / @months : 0
+    @net_flow = ongoing_rate(@projection)
     @drift_categories = forecast.discretionary_breakdown(Date.current..(Date.current + 1.day))
 
     # Health + alerts always track the liquid cash position, whatever
@@ -36,6 +36,18 @@ class DashboardController < ApplicationController
   end
 
   private
+
+  # Least-squares slope of the projection, in cents/month — the ongoing
+  # rate, immune to one-time shocks like the card's debt payoff.
+  def ongoing_rate(points)
+    return 0 if points.size < 2
+    xs = (0...points.size).to_a
+    ys = points.map(&:last)
+    n = xs.size
+    slope = (n * xs.zip(ys).sum { |x, y| x * y } - xs.sum * ys.sum) /
+            (n * xs.sum { |x| x * x } - xs.sum**2).to_f
+    (slope * 30).round
+  end
 
   # Projected balance at the horizon date, plus delta from today.
   def checkpoint(points, upto)
