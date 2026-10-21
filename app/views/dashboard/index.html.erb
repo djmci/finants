@@ -78,9 +78,9 @@
                 onchange: "this.form.requestSubmit()", class: "select select-sm w-52" %>
           <% end %>
           <div class="join">
-            <% { hybrid: "Hybrid", rules: "Planned", history: "Actual" }.each do |b, label| %>
+            <% { history: "Tracked spend", rules: "Planned spend", hybrid: "Hybrid" }.each do |b, label| %>
               <%= link_to label, root_path(basis: b, months: @months, account: params[:account]),
-                  class: "join-item btn btn-sm #{@basis == b ? "btn-brand" : ""}", title: { hybrid: "Scheduled items + residual drift", rules: "Scheduled items only", history: "Real spend rate only" }[b] %>
+                  class: "join-item btn btn-sm #{@basis == b ? "btn-brand" : ""}", title: { history: "Your real spend rate from the last 90 days", rules: "Only the items in your Forecast list", hybrid: "Real spend, plus the items you flag 'include in hybrid'" }[b] %>
             <% end %>
           </div>
           <div class="join">

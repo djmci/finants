@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_141137) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_21_141823) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -80,7 +80,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_141137) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.boolean "mask_history", default: true, null: false
+    t.boolean "include_in_hybrid", default: true, null: false
     t.index ["account_id"], name: "index_recurring_rules_on_account_id"
     t.index ["category_id"], name: "index_recurring_rules_on_category_id"
     t.index ["to_account_id"], name: "index_recurring_rules_on_to_account_id"

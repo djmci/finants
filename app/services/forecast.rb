@@ -17,7 +17,13 @@ class Forecast
   def initialize(accounts:, rules:, window_days: 90, basis: :hybrid)
     @accounts = Array(accounts)
     @basis = basis
-    @rules = basis == :history ? [] : rules
+    # :history → no rules; :rules → the full plan; :hybrid → only the
+    # rules opted into the hybrid layer.
+    @rules = case basis
+             when :history then []
+             when :rules   then rules
+             else rules.select { |r| r.include_in_hybrid? }
+             end
     @window_days = window_days
     # Settle rules need the target account projected even when it's
     # outside the scoped view — e.g. a bank→Amex payment in Cash view.
@@ -113,7 +119,7 @@ class Forecast
                         .where.not(category_id: excluded_cats)
                         .where("amount_cents < 0")
                         .group(:account_id, :category_id, :payee, :amount_cents).count
-    rules_by_account = @rules.select { |r| r.active? && r.mask_history? }.group_by(&:account_id)
+    rules_by_account = @rules.select(&:active?).group_by(&:account_id)
     combos.group_by { |(account_id, _, _, _), _| account_id }.flat_map do |account_id, ac|
       samples = ac.flat_map { |(_, _, _, cents), n| [ cents.abs ] * n }
       median = samples.sort[samples.size / 2] || 0
