@@ -71,14 +71,21 @@
         <div class="flex items-center gap-1">
           <%= form_with url: root_path, method: :get, local: true, class: "flex items-center gap-1" do %>
             <%= hidden_field_tag :months, @months %>
+            <%= hidden_field_tag :basis, @basis %>
             <%= select_tag :account, options_for_select(
                   [ [ "Cashflow", "" ] ] + @accounts.map { |a| [ a.name, a.id ] },
                   params[:account]),
                 onchange: "this.form.requestSubmit()", class: "select select-sm w-52" %>
           <% end %>
           <div class="join">
+            <% { hybrid: "Hybrid", rules: "Planned", history: "Actual" }.each do |b, label| %>
+              <%= link_to label, root_path(basis: b, months: @months, account: params[:account]),
+                  class: "join-item btn btn-sm #{@basis == b ? "btn-brand" : ""}", title: { hybrid: "Scheduled items + residual drift", rules: "Scheduled items only", history: "Real spend rate only" }[b] %>
+            <% end %>
+          </div>
+          <div class="join">
             <% [ 3, 6, 12 ].each do |m| %>
-              <%= link_to "#{m}mo", root_path(months: m, account: params[:account]),
+              <%= link_to "#{m}mo", root_path(months: m, account: params[:account], basis: @basis),
                   class: "join-item btn btn-sm #{@months == m ? "btn-brand" : ""}" %>
             <% end %>
           </div>

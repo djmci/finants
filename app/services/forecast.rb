@@ -12,9 +12,12 @@
 class Forecast
   attr_reader :accounts
 
-  def initialize(accounts:, rules:, window_days: 90)
+  # basis: :hybrid (rules + residual drift), :rules (scheduled items
+  # only), :history (raw drift only — no rules, no masking).
+  def initialize(accounts:, rules:, window_days: 90, basis: :hybrid)
     @accounts = Array(accounts)
-    @rules = rules
+    @basis = basis
+    @rules = basis == :history ? [] : rules
     @window_days = window_days
     # Settle rules need the target account projected even when it's
     # outside the scoped view — e.g. a bank→Amex payment in Cash view.
@@ -25,7 +28,7 @@ class Forecast
   def series(range)
     deltas = occurrence_deltas(range)
     settles = settle_occurrences(range)
-    disc = discretionary_daily(range)
+    disc = @basis == :rules ? {} : discretionary_daily(range)
     bal = seed_balances(range)
     points = @all_accounts.index_with { |a| [] }
     range.each do |d|
@@ -110,7 +113,7 @@ class Forecast
                         .where.not(category_id: excluded_cats)
                         .where("amount_cents < 0")
                         .group(:account_id, :category_id, :payee, :amount_cents).count
-    rules_by_account = @rules.select(&:active?).group_by(&:account_id)
+    rules_by_account = @rules.select { |r| r.active? && r.mask_history? }.group_by(&:account_id)
     combos.group_by { |(account_id, _, _, _), _| account_id }.flat_map do |account_id, ac|
       samples = ac.flat_map { |(_, _, _, cents), n| [ cents.abs ] * n }
       median = samples.sort[samples.size / 2] || 0
