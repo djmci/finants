@@ -111,8 +111,8 @@
               <div class="text-xs <%= "font-bold" if day == Date.current %>"><%= day.day %></div>
               <% (@cal_days[day] || []).each do |o| %>
                 <div class="text-[10px] leading-tight truncate <%= o[:rule].kind == "income" ? "text-success" : "text-error/80" %>"
-                     title="<%= o[:rule].payee %> <%= signed_money(o[:rule].signed_amount_cents) %>">
-                  <%= o[:rule].payee.truncate(12) %> <%= o[:rule].settle? ? "bal" : signed_money(o[:rule].signed_amount_cents) %>
+                     title="<%= "#{o[:rule].payee} #{number_to_currency(o[:rule].signed_amount_cents / 100.0)}" %>">
+                  <%= o[:rule].payee.truncate(12) %> <%= o[:rule].settle? ? "bal" : number_to_currency(o[:rule].signed_amount_cents / 100.0) %>
                 </div>
               <% end %>
             </div>
