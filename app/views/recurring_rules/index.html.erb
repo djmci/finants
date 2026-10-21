@@ -11,6 +11,7 @@
   <div class="drawer-content space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
       <h1 class="font-bold text-xl">Forecast<% if @scenario %> — <span class="text-warning"><%= @scenario.name %></span><% end %></h1>
+      <div class="flex items-center gap-2 flex-wrap">
       <%= form_with url: recurring_rules_path, method: :get, class: "flex items-center gap-2" do %>
         <%= select_tag :scenario_id, options_for_select([ [ "Live rules", "" ] ] + @scenarios.map { |s| [ s.name, s.id ] }, @scenario&.id.to_s),
             onchange: "this.form.requestSubmit()", class: "select select-sm w-44" %>
@@ -33,6 +34,7 @@
       <% else %>
         <label for="rule-drawer" class="btn btn-primary btn-sm"><%= icon "plus" %> New rule</label>
       <% end %>
+      </div>
     </div>
 
     <div class="card card-border bg-base-100 overflow-x-auto">
