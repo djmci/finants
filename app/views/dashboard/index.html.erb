@@ -163,7 +163,7 @@
           <% (@cal_month.beginning_of_week..@cal_month.end_of_month.end_of_week).each do |day| %>
             <div class="min-h-24 border-t border-l border-base-300 first:border-l-0 p-1.5 <%= "bg-base-200/40 text-base-content/30" if day.month != @cal_month.month %>">
               <div class="text-xs <%= "font-bold" if day == Date.current %>"><%= day.day %></div>
-              <% (@cal_days[day] || []).each do |o| %>
+              <% (@cal_days[day] || []).sort_by { |o| o[:rule].kind == "income" ? 0 : 1 }.each do |o| %>
                 <% settle_amt = o[:rule].settle? ? @settle_amounts[[o[:rule].id, day]] : nil %>
                 <div class="text-[10px] leading-tight truncate <%= o[:rule].kind == "income" ? "text-success" : "text-error/80" %>"
                      title="<%= "#{o[:rule].payee} #{number_to_currency((o[:rule].settle? ? -(settle_amt || 0) : o[:rule].signed_amount_cents) / 100.0)}" %>">
