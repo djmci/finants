@@ -107,7 +107,7 @@
         </div>
         <div class="grid grid-cols-7">
           <% (@cal_month.beginning_of_week..@cal_month.end_of_month.end_of_week).each do |day| %>
-            <div class="min-h-20 border-t border-l border-base-300 first:border-l-0 p-1 <%= "bg-base-200/40 text-base-content/30" if day.month != @cal_month.month %>">
+            <div class="min-h-28 border-t border-l border-base-300 first:border-l-0 p-1.5 <%= "bg-base-200/40 text-base-content/30" if day.month != @cal_month.month %>">
               <div class="text-xs <%= "font-bold" if day == Date.current %>"><%= day.day %></div>
               <% (@cal_days[day] || []).each do |o| %>
                 <div class="text-[10px] leading-tight truncate <%= o[:rule].kind == "income" ? "text-success" : "text-error/80" %>"
