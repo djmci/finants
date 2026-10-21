@@ -1,8 +1,11 @@
 class DashboardController < ApplicationController
+  allow_unauthenticated_access only: :index
+
   HISTORY_DAYS = 90
   HORIZONS = { "Next month" => 1.month, "Next quarter" => 3.months, "Next year" => 12.months }.freeze
 
   def index
+    return render :landing unless authenticated?
     @accounts = Account.active.includes(:owner).order(:name)
     @liquid = @accounts.select { |a| a.liquid? }
     @uncategorised_count = Transaction.uncategorised.count

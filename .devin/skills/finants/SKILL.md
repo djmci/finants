@@ -101,3 +101,26 @@ Read `PLAN.md` first — it tracks build phases and open decisions.
   `session_id` — collision logged you out).
 - Income rule payees must match *bank text* ("WAGES IOOF SERVICE CO"),
   not friendly names — a friendly label masks nothing.
+
+## Scenarios
+
+- `Scenario` clones `RecurringRule.live` (rules where `scenario_id`
+  nil). Any code that means "the real rule set" uses `.live` —
+  `RecurringRule.active` alone now also matches scenario copies.
+- Forecast page: `?scenario_id=` switches the rule list; tabs/links
+  carry the param. Dashboard: `?scenario=` overlays a dashed amber
+  comparison line.
+- Scenario copies are never matched to real txns (once-rule linking
+  stays on live rules).
+- Resync destroys and re-clones — edits inside the scenario are lost.
+
+## Forecasting gotchas learned
+
+- Cashflow smoothing = settle *cadence*, not instalments: a monthly
+  settle always carries that month's real accrual. A fortnightly
+  settle (~half-month accrual per payment, aligned after paydays)
+  smooths the sawtooth properly. Instalment logic was tried and
+  removed.
+- Comparing liquid-only projections against scenarios: paying less
+  to a card keeps cash high but leaves debt — always compare on the
+  same account scope and remember the card side exists.

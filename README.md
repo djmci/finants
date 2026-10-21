@@ -48,5 +48,8 @@ come from `FINANTS_ADMIN_EMAIL` / `FINANTS_ADMIN_PASSWORD` env vars.
 - **Smoothing** (`app/services/smoothing_suggestions.rb`) — finds cash
   troughs under the warn threshold and suggests moving big outflows to
   after payday.
+- **Scenarios** (`app/models/scenario.rb`) — sandbox copies of the
+  live rule set for what-if planning. Edit freely, then overlay the
+  scenario on the dashboard chart to compare. Resync re-copies live.
 
 More detail in `.devin/skills/finants/SKILL.md`.

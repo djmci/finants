@@ -1,0 +1,42 @@
+<% content_for :title, "Finants — household cashflow forecasting" %>
+
+<div class="min-h-[85vh] flex flex-col items-center justify-center text-center px-4">
+  <div class="flex items-center gap-3 mb-3">
+    <%= ant_icon size: 44 %>
+    <%= finants_wordmark class: "font-bold text-4xl tracking-tight" %>
+  </div>
+  <p class="text-lg text-base-content/70 max-w-md mb-8">Know what's in the bank on any given day — income, bills, and card payments projected from your real transactions.</p>
+
+  <%# decorative forecast chart — sawtooth cashflow past today seam %>
+  <svg viewBox="0 0 560 160" class="w-full max-w-xl mb-8" role="img" aria-hidden="true">
+    <line x1="20" y1="80" x2="540" y2="80" class="stroke-base-300" stroke-dasharray="2 3"/>
+    <polyline points="20,95 60,60 90,100 120,70 150,105 180,75 210,110 240,80" fill="none" class="stroke-info" stroke-width="2.5" stroke-linejoin="round"/>
+    <polyline points="240,80 270,115 300,85 330,120 360,95 390,125 420,100 450,130 480,105 540,115" fill="none" class="stroke-info" stroke-width="2.5" stroke-dasharray="5 4" stroke-linejoin="round"/>
+    <polyline points="240,80 270,100 300,75 330,105 360,85 390,110 420,90 450,115 480,95 540,100" fill="none" class="stroke-warning" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"/>
+    <line x1="240" y1="25" x2="240" y2="140" class="stroke-base-content/30" stroke-dasharray="2 3"/>
+    <text x="246" y="38" font-size="9" letter-spacing="1" class="fill-base-content/50">TODAY</text>
+  </svg>
+
+  <%= link_to new_session_path, class: "btn btn-primary btn-lg mb-14" do %>Sign in<% end %>
+
+  <div class="grid sm:grid-cols-3 gap-6 max-w-3xl w-full">
+    <div class="card card-border bg-base-100">
+      <div class="card-body p-5 items-center">
+        <h2 class="font-semibold">See the dips coming</h2>
+        <p class="text-sm text-base-content/60">Recurring income and bills projected daily — cash troughs surface months out.</p>
+      </div>
+    </div>
+    <div class="card card-border bg-base-100">
+      <div class="card-body p-5 items-center">
+        <h2 class="font-semibold">Cards settle themselves</h2>
+        <p class="text-sm text-base-content/60">Card bills sized from your real spend — the forecast pays what you'll actually owe.</p>
+      </div>
+    </div>
+    <div class="card card-border bg-base-100">
+      <div class="card-body p-5 items-center">
+        <h2 class="font-semibold">Play what-if</h2>
+        <p class="text-sm text-base-content/60">Sandbox copies of your plan — change a wage, add an expense, compare the curves.</p>
+      </div>
+    </div>
+  </div>
+</div>
