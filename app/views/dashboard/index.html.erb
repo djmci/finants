@@ -61,6 +61,18 @@
           <% end %>
         </tbody>
       </table>
+      <% if @smoothing.any? %>
+        <div class="border-t border-base-300 px-4 py-2.5 space-y-1">
+          <h3 class="text-xs uppercase tracking-wide text-base-content/50 font-semibold">Smooth it out</h3>
+          <% @smoothing.each do |s| %>
+            <p class="text-sm text-base-content/80">
+              Move <strong><%= s[:rule].payee %></strong> (<%= money s[:amount_cents] %>, currently <%= s[:on].strftime("%-d %b") %>)
+              to <strong><%= s[:suggested].strftime("%-d %b") %></strong> — lands just after payday, right now it hits
+              <%= (s[:trough] - s[:on]).to_i %> days before cash bottoms on <%= s[:trough].strftime("%-d %b") %>.
+            </p>
+          <% end %>
+        </div>
+      <% end %>
     </div>
   </div>
 

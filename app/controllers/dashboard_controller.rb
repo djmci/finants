@@ -35,6 +35,8 @@ class DashboardController < ApplicationController
     @health = HORIZONS.to_h { |name, span| [ name, checkpoint(cash, Date.current + span) ] }
     monitor = CashflowMonitor.new(warn: Setting.alert_warn_cents, critical: Setting.alert_critical_cents)
     @breaches = monitor.breaches(cash)
+    @smoothing = SmoothingSuggestions.new(points: cash, rules: rules,
+                                          warn_cents: Setting.alert_warn_cents).call
     @health.each_value { |h| h[:severity] = monitor.severity_of(cash.select { |d, _| d <= h[:date] }) }
     @alert_warn = Setting.alert_warn_cents / 100.0
     @alert_critical = Setting.alert_critical_cents / 100.0
