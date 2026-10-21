@@ -80,7 +80,7 @@
         <h2 class="font-bold text-lg"><%= editing_txn ? "Edit transaction" : "New transaction" %></h2>
         <label for="txn-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
       </div>
-      <%= render "transactions/form", txn: @edit_txn || Transaction.new(account: @account, posted_on: Date.current), accounts: @accounts, categories: @categories %>
+      <%= render "transactions/form", txn: @edit_txn || Transaction.new(account: @account, posted_on: Date.current), accounts: @accounts, categories: @categories, once_rules: @once_rules %>
     </div>
   </div>
 </div>

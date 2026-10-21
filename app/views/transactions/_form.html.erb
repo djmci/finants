@@ -30,11 +30,11 @@
     <%= f.check_box :learn_rule, { checked: txn.learn_rule != false, class: "checkbox checkbox-sm" } %>
     <span class="text-sm">Learn a rule for this payee <span class="text-base-content/50">— untick for one-offs</span></span>
   </label>
-  <% if once_rules.any? %>
+  <% if (local_assigns[:once_rules] || []).any? %>
     <div class="fieldset">
       <%= f.label :recurring_rule_id, "Planned expense", class: "label" %>
       <%= f.select :recurring_rule_id,
-          options_for_select([ [ "None", "" ] ] + once_rules.map { |r| [ "#{r.payee} — #{r.account.name}", r.id ] }, txn.recurring_rule_id),
+          options_for_select([ [ "None", "" ] ] + local_assigns[:once_rules].map { |r| [ "#{r.payee} — #{r.account.name}", r.id ] }, txn.recurring_rule_id),
           {}, class: "select w-full" %>
       <p class="text-xs text-base-content/50 mt-1">Links this to a one-off rule — the rule resolves once matched.</p>
     </div>

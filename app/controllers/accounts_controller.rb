@@ -25,6 +25,7 @@ class AccountsController < ApplicationController
     @edit_txn = @account.transactions.find_by(id: params[:edit])
     @accounts = Account.active.order(:name)
     @categories = Category.active.order(:kind, :name)
+    @once_rules = RecurringRule.active.where(frequency: "once").includes(:account).order(:payee)
   end
 
   def create
