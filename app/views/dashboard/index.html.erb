@@ -155,10 +155,11 @@
           <h2 class="font-semibold text-sm"><%= @cal_month.strftime("%B %Y") %></h2>
           <%= link_to "#{(@cal_month + 1.month).strftime("%b")} →", root_path(basis: @basis, months: @months, account: params[:account], upcoming: "calendar", cal_month: (@cal_month + 1.month).strftime("%Y-%m")), class: "btn btn-ghost btn-xs" %>
         </div>
-        <div class="grid grid-cols-7 text-center text-xs text-base-content/50 border-b border-base-300">
+        <div class="overflow-x-auto">
+        <div class="grid grid-cols-7 text-center text-xs text-base-content/50 border-b border-base-300 min-w-[640px]">
           <% %w[Mon Tue Wed Thu Fri Sat Sun].each do |d| %><div class="py-1.5"><%= d %></div><% end %>
         </div>
-        <div class="grid grid-cols-7">
+        <div class="grid grid-cols-7 min-w-[640px]">
           <% (@cal_month.beginning_of_week..@cal_month.end_of_month.end_of_week).each do |day| %>
             <div class="min-h-24 border-t border-l border-base-300 first:border-l-0 p-1.5 <%= "bg-base-200/40 text-base-content/30" if day.month != @cal_month.month %>">
               <div class="text-xs <%= "font-bold" if day == Date.current %>"><%= day.day %></div>
@@ -176,6 +177,7 @@
               <% end %>
             </div>
           <% end %>
+        </div>
         </div>
       <% end %>
     </div>
