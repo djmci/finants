@@ -1,8 +1,10 @@
-# Dev/test seed — first household member + starter categories.
-# Idempotent, safe to re-run. Login: admin@finants.test / password
+# Seed — first admin + starter categories. Idempotent, safe to re-run.
+# Dev login: admin@finants.test / password
+# Prod: override via FINANTS_ADMIN_EMAIL / FINANTS_ADMIN_PASSWORD.
 
-admin = User.find_or_initialize_by(email_address: "admin@finants.test")
-admin.update!(name: "Dan", role: "admin", password: "password", password_confirmation: "password")
+admin = User.find_or_initialize_by(email_address: ENV.fetch("FINANTS_ADMIN_EMAIL", "admin@finants.test"))
+admin.update!(name: "Household admin", role: "admin",
+              password: ENV.fetch("FINANTS_ADMIN_PASSWORD", "password"))
 
 {
   "income" => %w[Salary Interest Dividends Other Tax\ refund],
