@@ -6,6 +6,8 @@ class TransactionsController < ApplicationController
     @transactions = @transactions.where(account_id: params[:account]) if params[:account].present?
     @transactions = @transactions.for_owner(params[:owner]) if params[:owner].present?
     @transactions = @transactions.where("payee ILIKE ?", "%#{params[:q].strip}%") if params[:q].present?
+    @transactions = @transactions.where("amount_cents < 0") if params[:direction] == "spent"
+    @transactions = @transactions.where("amount_cents > 0") if params[:direction] == "received"
     @transactions = @transactions.where("ABS(amount_cents) >= ?", (params[:min].to_d * 100).to_i) if params[:min].present?
     @transactions = @transactions.where("ABS(amount_cents) <= ?", (params[:max].to_d * 100).to_i) if params[:max].present?
     @uncategorised_count = @transactions.uncategorised.count

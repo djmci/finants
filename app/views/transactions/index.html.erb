@@ -7,7 +7,7 @@
 <% editing = @edit_txn.present? %>
 <div class="drawer drawer-end">
   <input id="txn-drawer" type="checkbox" class="drawer-toggle" data-controller="drawer-open" data-drawer-open-open-value="<%= editing || params[:new].present? %>" />
-  <% active_filters = params.values_at(:account, :owner, :q, :min, :max, :uncategorised).count(&:present?) %>
+  <% active_filters = params.values_at(:account, :owner, :q, :direction, :min, :max, :uncategorised).count(&:present?) %>
 
   <div class="drawer-content space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
@@ -43,7 +43,7 @@
               </td>
               <td class="text-right"><%= signed_money txn.amount_cents %></td>
               <td class="text-right whitespace-nowrap w-12">
-                <%= link_to transactions_path(edit: txn.id, account: params[:account], owner: params[:owner], q: params[:q], uncategorised: params[:uncategorised], min: params[:min], max: params[:max], page: params[:page], anchor: "transaction_#{txn.id}"), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
+                <%= link_to transactions_path(edit: txn.id, account: params[:account], owner: params[:owner], q: params[:q], uncategorised: params[:uncategorised], direction: params[:direction], min: params[:min], max: params[:max], page: params[:page], anchor: "transaction_#{txn.id}"), class: "btn btn-ghost btn-circle btn-sm", title: "Edit" do %>
                   <%= icon "edit", class: "size-4" %>
                 <% end %>
               </td>
@@ -56,7 +56,7 @@
       </table>
       <% if @pages > 1 %>
         <div class="flex items-center justify-between px-4 py-2.5 border-t border-base-300">
-          <% params_page = params.permit(:account, :owner, :q, :min, :max, :uncategorised) %>
+          <% params_page = params.permit(:account, :owner, :q, :direction, :min, :max, :uncategorised) %>
           <% if @page > 1 %>
             <%= link_to "← Newer", transactions_path(params_page.merge(page: @page - 1)), class: "btn btn-ghost btn-sm" %>
           <% else %>
@@ -116,6 +116,10 @@
         <div class="fieldset">
           <label class="label text-xs">Owner</label>
           <%= select_tag :owner, options_for_select([ [ "Everyone", "" ], [ "Joint", "joint" ] ] + @members.map { |u| [ u.name, u.id ] }, params[:owner]), class: "select select-sm w-full" %>
+        </div>
+        <div class="fieldset">
+          <label class="label text-xs">Type</label>
+          <%= select_tag :direction, options_for_select([ [ "All", "" ], [ "Spent", "spent" ], [ "Received", "received" ] ], params[:direction]), class: "select select-sm w-full" %>
         </div>
         <div class="fieldset">
           <label class="label text-xs">Search</label>
