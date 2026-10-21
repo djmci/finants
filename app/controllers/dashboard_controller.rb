@@ -13,7 +13,10 @@ class DashboardController < ApplicationController
     @basis = %w[hybrid rules history].include?(params[:basis]) ? params[:basis].to_sym : :hybrid
     @scoped_account = @accounts.detect { |a| a.id.to_s == params[:account] }
     scope = @scoped_account ? [ @scoped_account ] : @liquid
-    forecast = Forecast.new(accounts: scope, rules: rules, basis: @basis)
+    # Tracked averages a full year of history — a 90-day window is too
+    # easily skewed by one-off-heavy quarters (e.g. the Mexico trip).
+    forecast = Forecast.new(accounts: scope, rules: rules, basis: @basis,
+                          window_days: @basis == :history ? 365 : 90)
     full = forecast.combined(Date.current..(Date.current + [ @months, 12 ].max.months))
     @projection = full.take_while { |d, _| d <= Date.current + @months.months }
     @history = balance_history(scope)
@@ -24,7 +27,8 @@ class DashboardController < ApplicationController
     # Health + alerts always track the liquid cash position, whatever
     # scope the chart is showing — a card/loan balance is negative by
     # nature, not a breach.
-    cash = Forecast.new(accounts: @liquid, rules: rules, basis: @basis)
+    cash = Forecast.new(accounts: @liquid, rules: rules, basis: @basis,
+                        window_days: @basis == :history ? 365 : 90)
                    .combined(Date.current..(Date.current + 12.months))
     @cash_now = cash.first.last
     @health = HORIZONS.to_h { |name, span| [ name, checkpoint(cash, Date.current + span) ] }

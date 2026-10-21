@@ -50,6 +50,20 @@ class HealthReport
     end
   end
 
+  # {month => {category_name => cents}} — real income by bucket.
+  def income_by_category
+    rows = Transaction.where(account: @liquid, transfer_pair_id: nil)
+                      .where("amount_cents > 0")
+                      .where("posted_on > ?", @today - TREND_MONTHS.months)
+                      .includes(:category)
+    grid = rows.group_by { |t| t.posted_on.beginning_of_month }
+               .transform_values do |ts|
+                 ts.group_by { |t| t.category&.display_name || "Uncategorised" }
+                   .transform_values { |list| list.sum(&:amount_cents) }
+               end
+    grid.sort.reverse.to_h
+  end
+
   # Last TREND_MONTHS calendar months of actual income vs spend on the
   # liquid accounts — the cash story, mirrors on loans/cards excluded.
   def monthly_trend
