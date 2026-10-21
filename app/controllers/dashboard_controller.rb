@@ -8,6 +8,12 @@ class DashboardController < ApplicationController
     @uncategorised_count = Transaction.uncategorised.count
     rules = RecurringRule.active.includes(:account, :category, :to_account)
     @upcoming = Recurring.occurrences_for(rules, Date.current..(Date.current + 30))
+    @upcoming_view = params[:upcoming] == "calendar" ? "calendar" : "list"
+    if @upcoming_view == "calendar"
+      @cal_month = (Date.strptime(params[:cal_month].to_s, "%Y-%m") rescue Date.current).beginning_of_month
+      @cal_days = Recurring.occurrences_for(rules, @cal_month..@cal_month.end_of_month)
+                           .group_by { |o| o[:on] }
+    end
 
     @months = (params[:months].presence || 6).to_i.clamp(1, 24)
     @basis = %w[hybrid rules history].include?(params[:basis]) ? params[:basis].to_sym : :hybrid

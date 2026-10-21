@@ -121,10 +121,16 @@
 
   <div class="card card-border bg-base-100">
     <div class="card-body p-0">
-      <div class="flex items-center justify-between border-b border-base-300 px-4 py-2.5">
-        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Upcoming — next 30 days</h2>
-        <%= link_to "Recurring rules", recurring_rules_path, class: "link link-hover text-xs" %>
+      <div class="flex items-center justify-between border-b border-base-300 px-1">
+        <div role="tablist" class="tabs tabs-border flex-nowrap">
+          <%= link_to "Upcoming", root_path(basis: @basis, months: @months, account: params[:account]), role: "tab",
+              class: "tab py-2 whitespace-nowrap #{@upcoming_view == "list" ? "tab-active" : ""}" %>
+          <%= link_to "Calendar", root_path(basis: @basis, months: @months, account: params[:account], upcoming: "calendar"), role: "tab",
+              class: "tab py-2 whitespace-nowrap #{@upcoming_view == "calendar" ? "tab-active" : ""}" %>
+        </div>
+        <%= link_to "Recurring rules", recurring_rules_path, class: "link link-hover text-xs pr-3" %>
       </div>
+      <% if @upcoming_view == "list" %>
       <table class="table table-sm">
         <tbody>
           <% @upcoming.each do |occ| %>
@@ -141,6 +147,37 @@
           <% end %>
         </tbody>
       </table>
+      <% end %>
+
+      <% if @upcoming_view == "calendar" %>
+        <div class="flex items-center justify-between px-4 py-2 border-b border-base-300">
+          <%= link_to "← #{(@cal_month - 1.month).strftime("%b")}", root_path(basis: @basis, months: @months, account: params[:account], upcoming: "calendar", cal_month: (@cal_month - 1.month).strftime("%Y-%m")), class: "btn btn-ghost btn-xs" %>
+          <h2 class="font-semibold text-sm"><%= @cal_month.strftime("%B %Y") %></h2>
+          <%= link_to "#{(@cal_month + 1.month).strftime("%b")} →", root_path(basis: @basis, months: @months, account: params[:account], upcoming: "calendar", cal_month: (@cal_month + 1.month).strftime("%Y-%m")), class: "btn btn-ghost btn-xs" %>
+        </div>
+        <div class="grid grid-cols-7 text-center text-xs text-base-content/50 border-b border-base-300">
+          <% %w[Mon Tue Wed Thu Fri Sat Sun].each do |d| %><div class="py-1.5"><%= d %></div><% end %>
+        </div>
+        <div class="grid grid-cols-7">
+          <% (@cal_month.beginning_of_week..@cal_month.end_of_month.end_of_week).each do |day| %>
+            <div class="min-h-24 border-t border-l border-base-300 first:border-l-0 p-1.5 <%= "bg-base-200/40 text-base-content/30" if day.month != @cal_month.month %>">
+              <div class="text-xs <%= "font-bold" if day == Date.current %>"><%= day.day %></div>
+              <% (@cal_days[day] || []).each do |o| %>
+                <% settle_amt = o[:rule].settle? ? @settle_amounts[[o[:rule].id, day]] : nil %>
+                <div class="text-[10px] leading-tight truncate <%= o[:rule].kind == "income" ? "text-success" : "text-error/80" %>"
+                     title="<%= "#{o[:rule].payee} #{number_to_currency((o[:rule].settle? ? -(settle_amt || 0) : o[:rule].signed_amount_cents) / 100.0)}" %>">
+                  <%= o[:rule].payee.truncate(12) %>
+                  <% if o[:rule].settle? %>
+                    <%= settle_amt ? number_to_currency(-settle_amt / 100.0) : "bal" %>
+                  <% else %>
+                    <%= number_to_currency(o[:rule].signed_amount_cents / 100.0) %>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
     </div>
   </div>
 

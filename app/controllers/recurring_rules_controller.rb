@@ -12,13 +12,8 @@ class RecurringRulesController < ApplicationController
     @accounts_by_id = @accounts.index_by(&:id)
     @categories = Category.active.order(:kind, :name)
 
-    if @tab == "detected"
-      @suggestions = RecurringSuggestions.call
-    elsif @tab == "calendar"
-      @cal_month = (Date.strptime(params[:month].to_s, "%Y-%m") rescue Date.current).beginning_of_month
-      @cal_days = Recurring.occurrences_for(RecurringRule.active, @cal_month..@cal_month.end_of_month)
-                           .group_by { |o| o[:on] }
-    end
+    @tab = "active" if @tab == "calendar"
+    @suggestions = RecurringSuggestions.call if @tab == "detected"
   end
 
   def create
