@@ -69,6 +69,7 @@ class Forecast
       @all_accounts.each { |a| bal[a.id] += deltas[[ a.id, d ]] + (disc[a.id] || 0) }
       (settles[d] || []).each do |rule|
         amt = -bal[rule.to_account_id]
+        amt /= rule.installments if rule.installments.to_i > 1
         @settlement_amounts[[ rule.id, d ]] = amt
         bal[rule.to_account_id] += amt
         bal[rule.account_id] -= amt

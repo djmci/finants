@@ -14,6 +14,7 @@ class RecurringRule < ApplicationRecord
   validates :frequency, inclusion: { in: FREQUENCIES }
   validates :every, numericality: { only_integer: true, greater_than: 0 }
   validates :amount_cents, presence: true, numericality: { other_than: 0 }, unless: :settle?
+  validates :installments, numericality: { greater_than: 0, only_integer: true }, allow_nil: true
   validates :to_account, presence: true, if: -> { kind == "transfer" || kind == "settle" }
   validate :transfer_accounts_differ, if: -> { kind == "transfer" || kind == "settle" }
   validate :to_account_only_for_transfers
