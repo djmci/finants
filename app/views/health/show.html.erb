@@ -67,32 +67,6 @@
       </table>
     </div>
 
-    <% income_grid = @report.income_by_category %>
-    <% income_cats = income_grid.values.flat_map(&:keys).uniq %>
-    <div class="card card-border bg-base-100 overflow-x-auto">
-      <div class="border-b border-base-300 px-4 py-2.5">
-        <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Income by category</h2>
-      </div>
-      <table class="table table-sm">
-        <thead>
-          <tr class="text-xs text-base-content/50">
-            <th>Month</th>
-            <% income_cats.each do |c| %><th class="text-right"><%= c %></th><% end %>
-          </tr>
-        </thead>
-        <tbody>
-          <% income_grid.each do |month, cats| %>
-            <tr>
-              <td><%= month.strftime("%b %Y") %></td>
-              <% income_cats.each do |c| %>
-                <td class="text-right <%= "text-base-content/40" unless cats[c] %>"><%= cats[c] ? signed_money(cats[c]) : "—" %></td>
-              <% end %>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
-
     <div class="card card-border bg-base-100 overflow-x-auto">
       <div class="border-b border-base-300 px-4 py-2.5">
         <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Where it goes — last 90 days, per month</h2>
@@ -111,5 +85,31 @@
         </tbody>
       </table>
     </div>
+  </div>
+
+  <% income_grid = @report.income_by_category %>
+  <% income_cats = income_grid.values.flat_map(&:keys).uniq %>
+  <div class="card card-border bg-base-100 overflow-x-auto">
+    <div class="border-b border-base-300 px-4 py-2.5">
+      <h2 class="font-semibold text-sm uppercase tracking-wide text-base-content/60">Income by category — last 12 months</h2>
+    </div>
+    <table class="table table-sm">
+      <thead>
+        <tr class="text-xs text-base-content/50">
+          <th>Month</th>
+          <% income_cats.each do |c| %><th class="text-right"><%= c %></th><% end %>
+        </tr>
+      </thead>
+      <tbody>
+        <% income_grid.each do |month, cats| %>
+          <tr>
+            <td><%= month.strftime("%b %Y") %></td>
+            <% income_cats.each do |c| %>
+              <td class="text-right <%= "text-base-content/40" unless cats[c] %>"><%= cats[c] ? signed_money(cats[c]) : "—" %></td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
   </div>
 </div>
