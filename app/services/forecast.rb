@@ -154,8 +154,9 @@ class Forecast
     Transaction.where(account: rule.to_account, transfer_pair_id: nil)
                .where("posted_on < ?", upto).where("amount_cents > 0")
                .select do |c|
+      # Card credit posts up to 5d before / 2d after the bank debit.
       payments.any? { |p| (c.amount_cents - p.amount_cents.abs).abs <= [ c.amount_cents * 0.02, 500 ].max &&
-                          (c.posted_on - p.posted_on).abs <= 5 }
+                          c.posted_on.between?(p.posted_on - 5.days, p.posted_on + 2.days) }
     end.max_by(&:posted_on)
   end
 end
