@@ -98,4 +98,15 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
           headers: { "HTTP_REFERER" => transactions_url }
     assert_equal "#{transactions_url}#transaction_#{txn.id}", response.location
   end
+
+
+  test "index filters by amount range" do
+    sign_in_as users(:one)
+    get transactions_url(min: "100")
+    assert_match "Employer", response.body   # $5,000 income row
+    assert_no_match "Woolworths", response.body
+    get transactions_url(max: "100")
+    assert_match "Woolworths", response.body
+    assert_no_match "Employer", response.body
+  end
 end
