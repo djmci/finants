@@ -107,8 +107,8 @@
             <% end %>
           </div>
           <div class="join">
-            <% [ 3, 6, 12 ].each do |m| %>
-              <%= link_to "#{m}mo", root_path(months: m, account: params[:account], basis: @basis, scenario: params[:scenario]),
+            <% [ 3, 6, 12, 36 ].each do |m| %>
+              <%= link_to (m > 12 ? "#{m / 12}yr" : "#{m}mo"), root_path(months: m, account: params[:account], basis: @basis, scenario: params[:scenario]),
                   class: "join-item btn btn-sm #{@months == m ? "btn-brand" : ""}" %>
             <% end %>
           </div>

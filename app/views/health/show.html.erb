@@ -8,7 +8,7 @@
     <div class="stat">
       <div class="stat-title">Cash now</div>
       <div class="stat-value text-2xl"><%= signed_money @report.cash_now %></div>
-      <div class="stat-desc">liquid accounts</div>
+      <div class="stat-desc"><%= signed_money @report.cash_actual %> imported</div>
     </div>
     <div class="stat">
       <div class="stat-title">Lowest point (12mo)</div>

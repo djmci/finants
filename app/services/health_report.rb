@@ -13,9 +13,14 @@ class HealthReport
     @rules = RecurringRule.live.active.includes(:account, :to_account, :category)
     @projection = Forecast.new(accounts: @liquid, rules: @rules)
                           .combined(@today..(@today + 12.months))
+                          .select { |d, _| d >= @today }
   end
 
-  def cash_now = @liquid.sum(&:balance_cents)
+  # Expected liquid position — actuals plus bills due but not yet
+  # posted (the projection's value at today). cash_actual is the raw
+  # imported figure, shown for contrast.
+  def cash_now = @projection.first.last
+  def cash_actual = @liquid.sum(&:balance_cents)
 
   def min_point = @projection.min_by(&:last)
   def first_negative = @projection.find { |_d, c| c < 0 }&.first

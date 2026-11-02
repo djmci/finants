@@ -18,7 +18,7 @@ class DashboardController < ApplicationController
                            .group_by { |o| o[:on] }
     end
 
-    @months = (params[:months].presence || 6).to_i.clamp(1, 24)
+    @months = (params[:months].presence || 6).to_i.clamp(1, 36)
     @basis = %w[hybrid rules history].include?(params[:basis]) ? params[:basis].to_sym : :hybrid
     @scoped_account = @accounts.detect { |a| a.id.to_s == params[:account] }
     scope = @scoped_account ? [ @scoped_account ] : @liquid
@@ -28,7 +28,11 @@ class DashboardController < ApplicationController
                           window_days: @basis == :history ? 365 : 90)
     full = forecast.combined(Date.current..(Date.current + [ @months, 12 ].max.months))
     @settle_amounts = forecast.settlement_amounts || {}
-    @projection = full.take_while { |d, _| d <= Date.current + @months.months }
+    @history = balance_history(scope)
+    # The projection can start before today — it peels off the actuals
+    # where the last import ran out. Clamp it to the chart window.
+    @projection = full.select { |d, _| d >= @history.first.first && d <= Date.current + @months.months }
+    fwd = @projection.select { |d, _| d >= Date.current }
 
     # Scenario overlay — a second dashed line from the copied rule set.
     @scenarios = Scenario.order(:name)
@@ -37,10 +41,10 @@ class DashboardController < ApplicationController
       srules = @scenario.recurring_rules.active.includes(:account, :category, :to_account)
       @scenario_projection = Forecast.new(accounts: scope, rules: srules, basis: @basis)
                                      .combined(Date.current..(Date.current + @months.months))
+                                     .select { |d, _| d >= @history.first.first }
     end
-    @history = balance_history(scope)
-    @floor = @projection.min_by(&:last)
-    @net_flow = ongoing_rate(@projection)
+    @floor = fwd.min_by(&:last)
+    @net_flow = ongoing_rate(fwd)
     @drift_categories = forecast.discretionary_breakdown(Date.current..(Date.current + 1.day))
 
     # Health + alerts always track the liquid cash position, whatever
@@ -49,6 +53,7 @@ class DashboardController < ApplicationController
     cash = Forecast.new(accounts: @liquid, rules: rules, basis: @basis,
                         window_days: @basis == :history ? 365 : 90)
                    .combined(Date.current..(Date.current + 12.months))
+                   .select { |d, _| d >= Date.current }
     @cash_now = cash.first.last
     @health = HORIZONS.to_h { |name, span| [ name, checkpoint(cash, Date.current + span) ] }
     monitor = CashflowMonitor.new(warn: Setting.alert_warn_cents, critical: Setting.alert_critical_cents)

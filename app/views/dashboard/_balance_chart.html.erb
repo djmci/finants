@@ -12,7 +12,7 @@
   span_v = [ max_v - min_v, 1 ].max
   max_v += span_v * 0.06; min_v -= span_v * 0.06
   span_v = max_v - min_v
-  min_d = history.first&.first || Date.current
+  min_d = [ history.first&.first, projection.first&.first ].compact.min || Date.current
   max_d = (projection.last&.first || Date.current)
   span_d = [ max_d - min_d, 1 ].max
   x = ->(d) { pad_l + (d - min_d).to_f / span_d * (w - pad_l - pad_r) }
@@ -26,7 +26,13 @@
   ticks = [ min_v, (min_v + max_v) / 2, max_v ]
   today = Date.current
   area = "#{x.(min_d).round(1)},#{h - pad_b} #{to_line.(history)} #{x.([ today, max_d ].min).round(1)},#{h - pad_b}"
-  fseries = history.any? ? [ history.last ] + projection : projection
+  # The projection can peel off before today (where imports ran out) —
+  # anchor it to the solid line at its own first date, not at today's.
+  join = ->(pts) do
+    anchor = pts.first && history.select { |d, _| d <= pts.first.first }.last
+    anchor ? [ anchor ] + pts : pts
+  end
+  fseries = join.(projection)
 %>
 <svg viewBox="0 0 <%= w %> <%= h %>" class="w-full h-auto" role="img">
   <% ticks.each do |gv| %>
@@ -40,7 +46,7 @@
   <polyline points="<%= to_line.(history) %>" fill="none" class="stroke-info" stroke-width="2" stroke-linejoin="round"/>
   <polyline points="<%= to_line.(fseries) %>" fill="none" class="stroke-info" stroke-width="2" stroke-dasharray="4 3" stroke-linejoin="round"/>
   <% if comparison %>
-    <% cseries = history.any? ? [ history.last ] + comparison : comparison %>
+    <% cseries = join.(comparison) %>
     <polyline points="<%= to_line.(cseries) %>" fill="none" class="stroke-warning" stroke-width="2" stroke-dasharray="6 3" stroke-linejoin="round" opacity="0.85"/>
   <% end %>
   <line x1="<%= x.(today).round(1) %>" x2="<%= x.(today).round(1) %>" y1="<%= pad_t %>" y2="<%= h - pad_b %>"

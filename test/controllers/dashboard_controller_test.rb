@@ -1,9 +1,9 @@
 require "test_helper"
 
 class DashboardControllerTest < ActionDispatch::IntegrationTest
-  test "index redirects to sign in when logged out" do
+  test "index renders the landing page when logged out" do
     get root_url
-    assert_redirected_to new_session_url
+    assert_response :success
   end
 
   test "index renders when signed in" do

@@ -7,8 +7,13 @@ class Scenario < ApplicationRecord
 
   # Replace this scenario's rules with fresh copies of the live set.
   def clone_live_rules!
+    clone_rules_from! RecurringRule.live
+  end
+
+  # Replace this scenario's rules with copies of `source`.
+  def clone_rules_from!(source)
     recurring_rules.destroy_all
-    RecurringRule.live.each do |r|
+    source.each do |r|
       recurring_rules.create!(r.attributes.except("id", "scenario_id", "created_at", "updated_at"))
     end
   end
