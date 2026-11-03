@@ -43,7 +43,9 @@ class CsvImport
   attr_reader :headers, :rows, :sheet_name
 
   def initialize(payload, sheet: nil)
-    @payload = payload.to_s.b.delete_prefix("\xEF\xBB\xBF".b)
+    # Parsed fields inherit the payload's encoding — retag UTF-8 so
+    # NBSP-laden descriptions survive PayeeRule.normalize's regex.
+    @payload = payload.to_s.b.delete_prefix("\xEF\xBB\xBF".b).force_encoding(Encoding::UTF_8)
     if xlsx?
       load_xlsx(sheet)
     else

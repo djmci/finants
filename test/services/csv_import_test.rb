@@ -88,6 +88,16 @@ class CsvImportTest < ActiveSupport::TestCase
     assert_equal(-25000, rows.first[:amount_cents])
   end
 
+  test "hsbc csv with BOM and NBSPs commits without encoding errors" do
+    payload = "\uFEFF Transaction Date,Description,Amount,Balance,\n 28 Oct 2026,TRANSFER Loan\u00A0Payment From: 1\u00A0TO: 2,-6961.36,\" -1,145,990.98\"\n"
+    import = Import.create!(user: users(:one), account: accounts(:everyday),
+                            filename: "hsbc.csv", payload:)
+    csv = CsvImport.new(payload)
+    result = csv.commit(import, CsvImport.suggest(csv.headers, CsvImport.detect(csv.headers)))
+    assert_equal 1, result[:created]
+    assert_equal "TRANSFER Loan\u00A0Payment From: 1\u00A0TO: 2", Transaction.order(:id).last.payee
+  end
+
   test "xlsx parses typed cells — dates as Date, amounts as cents" do
     payload = File.binread(file_fixture("hsbc_extract.xlsx"))
     csv = CsvImport.new(payload)
