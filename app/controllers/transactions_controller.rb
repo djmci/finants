@@ -5,6 +5,10 @@ class TransactionsController < ApplicationController
     @transactions = Transaction.includes(:account, :category, :user, :recurring_rule).ordered
     @transactions = @transactions.where(account_id: params[:account]) if params[:account].present?
     @transactions = @transactions.for_owner(params[:owner]) if params[:owner].present?
+    if params[:category].present?
+      cat = Category.find_by(id: params[:category])
+      @transactions = @transactions.where(category_id: [ cat&.id, *cat&.children&.ids ].compact)
+    end
     @transactions = @transactions.where("payee ILIKE ?", "%#{params[:q].strip}%") if params[:q].present?
     @transactions = @transactions.where("amount_cents < 0") if params[:direction] == "spent"
     @transactions = @transactions.where("amount_cents > 0") if params[:direction] == "received"

@@ -13,6 +13,13 @@ class TransactionsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Woolworths", response.body
   end
 
+  test "index filters by category" do
+    sign_in_as users(:one)
+    get transactions_url(category: categories(:food).id)
+    assert_match "Woolworths", response.body
+    assert_no_match "Employer", response.body
+  end
+
   test "index filters to uncategorised" do
     sign_in_as users(:one)
     get transactions_url(uncategorised: 1)

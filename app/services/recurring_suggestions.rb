@@ -75,10 +75,19 @@ class RecurringSuggestions
     gaps.sort[gaps.size / 2]
   end
 
-  # Skip payees already covered by an active rule on the same account.
+  # Skip payees already covered by an active rule on the same account —
+  # or by a coverage pattern, which claims the payee household-wide.
   def covered?(rules, account_id, key)
+    return true if coverage_patterns.any? { |pat| key.include?(pat) }
     rules.any? do |r|
       r.account_id == account_id && key.include?(PayeeRule.normalize(r.payee))
     end
+  end
+
+  def coverage_patterns
+    @coverage_patterns ||= PayeeRule.where.not(recurring_rule_id: nil)
+                                    .includes(:recurring_rule)
+                                    .select { |pr| pr.recurring_rule&.scenario_id.nil? && pr.recurring_rule.active? }
+                                    .map(&:pattern)
   end
 end

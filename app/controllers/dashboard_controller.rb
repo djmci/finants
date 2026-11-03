@@ -2,6 +2,14 @@ class DashboardController < ApplicationController
   allow_unauthenticated_access only: :index
 
   HISTORY_DAYS = 90
+
+  # Quacks like a RecurringRule for the calendar — a day's projected
+  # category spend is drift, not a plan.
+  ProjectedItem = Struct.new(:payee, :kind, :amount_cents, :account, keyword_init: true) do
+    def settle? = false
+    def to_account = nil
+    def signed_amount_cents = kind == "expense" ? -amount_cents.abs : amount_cents.abs
+  end
   HORIZONS = { "Next month" => 1.month, "Next quarter" => 3.months, "Next year" => 12.months }.freeze
 
   def index
@@ -10,13 +18,6 @@ class DashboardController < ApplicationController
     @liquid = @accounts.select { |a| a.liquid? }
     @uncategorised_count = Transaction.uncategorised.count
     rules = RecurringRule.live.active.includes(:account, :category, :to_account)
-    @upcoming = Recurring.occurrences_for(rules, Date.current..(Date.current + 30))
-    @upcoming_view = params[:upcoming] == "calendar" ? "calendar" : "list"
-    if @upcoming_view == "calendar"
-      @cal_month = (Date.strptime(params[:cal_month].to_s, "%Y-%m") rescue Date.current).beginning_of_month
-      @cal_days = Recurring.occurrences_for(rules, @cal_month..@cal_month.end_of_month)
-                           .group_by { |o| o[:on] }
-    end
 
     @months = (params[:months].presence || 6).to_i.clamp(1, 36)
     @basis = %w[hybrid rules history].include?(params[:basis]) ? params[:basis].to_sym : :hybrid
@@ -46,6 +47,31 @@ class DashboardController < ApplicationController
     @floor = fwd.min_by(&:last)
     @net_flow = ongoing_rate(fwd)
     @drift_categories = forecast.discretionary_breakdown(Date.current..(Date.current + 1.day))
+
+    # Calendar — rule occurrences plus a weekly projected-spend line on
+    # each Monday (the drift no rule covers, rolled up by category —
+    # expandable in the cell). Only from today forward: past days are
+    # actuals, not projections.
+    @cal_month = (Date.strptime(params[:cal_month].to_s, "%Y-%m") rescue Date.current).beginning_of_month
+    # Generate from today, not the month's first — a once-rule due
+    # earlier lands "now" once, instead of re-landing on the 1st of
+    # every month the calendar pages to.
+    range = [ @cal_month, Date.current ].min..@cal_month.end_of_month
+    @cal_days = Recurring.occurrences_for(rules, range).group_by { |o| o[:on] }
+    weekly = @drift_categories.map { |name, cents| [ name, cents * 7 ] }
+    weekly_total = weekly.sum(&:last)
+    if weekly_total != 0
+      item = ProjectedItem.new(payee: "Weekly spend", amount_cents: weekly_total.abs,
+                               kind: weekly_total.negative? ? "expense" : "income", account: nil)
+      monday = range.begin
+      monday += 1 until monday.wday == 1 || monday > range.end
+      while monday <= range.end
+        # This week's remainder lands today; future weeks on their Monday.
+        d = [ monday, Date.current ].max
+        (@cal_days[d] ||= []) << { rule: item, on: d, projected: true, breakdown: weekly } if d <= range.end
+        monday += 7
+      end
+    end
 
     # Health + alerts always track the liquid cash position, whatever
     # scope the chart is showing — a card/loan balance is negative by

@@ -17,6 +17,17 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_match "Next year", response.body
   end
 
+  test "calendar shows a once-rule only in its due month" do
+    sign_in_as users(:one)
+    RecurringRule.create!(payee: "EQUITY TOP UP", account: accounts(:everyday), kind: "income",
+                          amount_cents: 4_000_000, frequency: "once",
+                          start_on: Date.current.next_month.beginning_of_month)
+    get root_url(upcoming: "calendar", cal_month: Date.current.next_month.strftime("%Y-%m"))
+    assert_match "EQUITY", response.body
+    get root_url(upcoming: "calendar", cal_month: (Date.current + 2.months).strftime("%Y-%m"))
+    assert_no_match "EQUITY", response.body
+  end
+
   test "index scopes to any single account" do
     sign_in_as users(:one)
     get root_url(account: accounts(:everyday).id)
