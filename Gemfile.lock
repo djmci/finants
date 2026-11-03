@@ -108,7 +108,7 @@ GEM
     creek (2.6.3)
       nokogiri (>= 1.10.0)
       rubyzip (>= 1.0.0)
-    csv (3.3.6)
+    csv (3.3.7)
     date (3.6.0)
     debug (1.11.1)
       irb (~> 1.10)
