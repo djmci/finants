@@ -92,7 +92,8 @@ class Transaction < ApplicationRecord
   end
 
   def suggest_rule
-    self.recurring_rule = RecurringRule.match_for(account:, payee:, amount_cents:)
+    self.recurring_rule = RecurringRule.coverage_match(payee:) ||
+                          RecurringRule.match_for(account:, payee:, amount_cents:)
   end
 
   def resolve_once_rule

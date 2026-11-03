@@ -43,7 +43,8 @@
                   <% if rule.max_amount_cents %><span class="badge badge-ghost badge-xs">≤<%= money(rule.max_amount_cents) %></span><% end %>
                   <% if rule.direction %><span class="badge badge-ghost badge-xs"><%= rule.direction %> only</span><% end %>
                 </td>
-                <td><span class="badge badge-soft badge-xs"><%= rule.category.display_name %></span></td>
+                <td><span class="badge badge-soft badge-xs"><%= rule.category.display_name %></span>
+                  <% if rule.recurring_rule %><span class="badge badge-info badge-soft badge-xs" title="Covered by forecast rule — matching txns link to it and leave drift">↻ <%= rule.recurring_rule.payee %></span><% end %></td>
                 <td class="text-base-content/60 text-xs"><%= rule.auto? ? "auto" : "suggest" %></td>
                 <td class="text-right whitespace-nowrap w-20">
                   <div class="flex items-center justify-end">

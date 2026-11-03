@@ -10,7 +10,17 @@
 
   <div class="drawer-content space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-2">
-      <h1 class="font-bold text-xl">Forecast<% if @scenario %> — <span class="text-warning"><%= @scenario.name %></span><% end %></h1>
+      <h1 class="font-bold text-xl">Forecast<% if @scenario %> — <span class="text-warning"><%= @scenario.name %></span>
+        <span class="dropdown">
+          <label tabindex="0" class="btn btn-ghost btn-circle btn-xs -mt-1" title="Rename scenario"><%= icon "edit", class: "size-3" %></label>
+          <div tabindex="0" class="dropdown-content card card-border bg-base-100 p-3 w-64 z-50 shadow font-normal text-base">
+            <%= form_with url: scenario_path(@scenario), method: :patch, class: "space-y-2" do %>
+              <%= text_field_tag :name, @scenario.name, placeholder: "Scenario name", required: true, class: "input input-sm w-full" %>
+              <%= submit_tag "Rename", class: "btn btn-primary btn-sm w-full" %>
+            <% end %>
+          </div>
+        </span>
+      <% end %></h1>
       <div class="flex items-center gap-2 flex-wrap">
       <%= form_with url: recurring_rules_path, method: :get, class: "flex items-center gap-2" do %>
         <%= select_tag :scenario_id, options_for_select([ [ "Live rules", "" ] ] + @scenarios.map { |s| [ s.name, s.id ] }, @scenario&.id.to_s),
@@ -27,6 +37,16 @@
         </div>
       </div>
       <% if @scenario %>
+        <div class="dropdown dropdown-end">
+          <label tabindex="0" class="btn btn-primary btn-soft btn-sm">Make live</label>
+          <div tabindex="0" class="dropdown-content card card-border bg-base-100 p-3 w-64 z-50 shadow space-y-2">
+            <p class="text-xs text-base-content/70">Adopt this plan — its rules become your live forecast. The current live rules are kept as a scenario named:</p>
+            <%= form_with url: promote_scenario_path(@scenario), class: "space-y-2" do %>
+              <%= text_field_tag :archive_name, "Previous plan", required: true, class: "input input-sm w-full" %>
+              <%= submit_tag "Make live", class: "btn btn-primary btn-sm w-full" %>
+            <% end %>
+          </div>
+        </div>
         <%= button_to resync_scenario_path(@scenario), class: "btn btn-ghost btn-sm", title: "Re-copy live rules into this scenario" do %>Resync<% end %>
         <%= button_to scenario_path(@scenario), method: :delete, class: "btn btn-ghost btn-sm text-error", title: "Delete scenario", data: { turbo_confirm: "Delete this scenario and its rules?" } do %>Delete<% end %>
       <% end %>
@@ -122,6 +142,7 @@
         <label for="rule-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
       </div>
       <%= render "form", rule: @edit_rule || @new_rule || RecurringRule.new(start_on: Date.current, frequency: "monthly", kind: "expense", scenario: @scenario), accounts: @accounts, categories: @categories %>
+      <%= render "coverage", rule: @edit_rule if @coverage %>
     </div>
   </div>
 </div>

@@ -55,6 +55,21 @@ class ForecastTest < ActiveSupport::TestCase
     assert_equal pts.last.last, pts.find { |d, _| d == Date.new(2025, 12, 3) }.last
   end
 
+  test "a linked txn stays masked when the adopted rule's amount changed" do
+    # Scenario adopted with a bumped amount — the real posting still
+    # explains that spend; it must not leak into drift on top of the rule.
+    rule = RecurringRule.create!(payee: "LOAN PAYMENT", account: @account, kind: "expense",
+                                 amount_cents: 774000, frequency: "monthly", every: 1,
+                                 start_on: Date.new(2026, 3, 15))
+    Transaction.create!(account: @account, posted_on: Date.new(2026, 1, 1) - 10,
+                        payee: "LOAN PAYMENT FROM: 102-431558-135", amount_cents: -696136,
+                        recurring_rule: rule)
+    f = Forecast.new(accounts: [ @account ], rules: [ rule ])
+    pts = f.series(Date.new(2026, 1, 1)..Date.new(2026, 1, 10))[@account]
+    tail = pts.select { |d, _| d > Date.new(2025, 12, 22) }
+    assert tail.all? { |_, v| v == tail.first.last }, "linked spend must not drift the projection"
+  end
+
   test "historical rows matching a transfer rule are not discretionary spend" do
     loan = Account.create!(name: "Loan", kind: "loan", opening_balance_cents: -50000000)
     rule = RecurringRule.create!(payee: "Loan Payment", account: @account,
@@ -68,6 +83,54 @@ class ForecastTest < ActiveSupport::TestCase
     pts = f.series(Date.new(2026, 1, 1)..Date.new(2026, 1, 9))[@account]
     tail = pts.select { |d, _| d > Date.new(2025, 12, 22) }
     assert tail.all? { |_, v| v == tail.first.last }, "rule-matched spend must not drift the projection"
+  end
+
+  test "covered payee spend stays out of drift at any amount" do
+    # Txns exist before coverage — no rule link, so only the coverage
+    # pattern can keep them out of the drift sample.
+    Transaction.create!(account: @account, posted_on: Date.new(2026, 1, 1) - 20,
+                        payee: "THE COUNCIL OF ST AN TH SYDNEY", amount_cents: -183450)
+    Transaction.create!(account: @account, posted_on: Date.new(2026, 1, 1) - 50,
+                        payee: "THE COUNCIL OF ST AN TH SYDNEY REF 99", amount_cents: -196700)
+    rule = RecurringRule.create!(payee: "School fees", account: @account, kind: "expense",
+                                 amount_cents: 190000, frequency: "monthly", every: 1,
+                                 start_on: Date.new(2026, 1, 15))
+    PayeeRule.create!(pattern: "COUNCIL OF ST AN", recurring_rule: rule)
+    pts = Forecast.new(accounts: [ @account ], rules: [ rule ])
+                  .series(Date.new(2026, 1, 1)..Date.new(2026, 1, 10))[@account]
+    tail = pts.select { |d, _| d > Date.new(2025, 12, 12) }
+    assert tail.all? { |_, v| v == tail.first.last }, "covered spend must not drift the projection"
+  end
+
+  test "a covered payee's real charge counts as the rule posting" do
+    rule = RecurringRule.create!(payee: "School fees", account: @account, kind: "expense",
+                                 amount_cents: 190000, frequency: "monthly", every: 1,
+                                 start_on: Date.new(2026, 1, 15))
+    PayeeRule.create!(pattern: "COUNCIL OF ST AN", recurring_rule: rule)
+    # The term fee posts a day late and at a different amount — the
+    # occurrence must not also fire on top of it.
+    txn = Transaction.create!(account: @account, posted_on: Date.new(2026, 1, 16),
+                              payee: "THE COUNCIL OF ST AN TH SYDNEY", amount_cents: -183450)
+    assert_equal rule, txn.recurring_rule, "covered payee should auto-link on save"
+    pts = Forecast.new(accounts: [ @account ], rules: [ rule ])
+                  .series(Date.new(2026, 2, 1)..Date.new(2026, 2, 20))[@account]
+    # Jan: actual only. Feb: rule fires −190000 → 100000 - 183450 - 190000.
+    assert_equal(-273450, pts.find { |d, _| d == Date.new(2026, 2, 15) }.last)
+  end
+
+  test "an unlinked covered-payee posting in the lag window still counts" do
+    # Different-amount charge that is NOT rule-linked (e.g. imported
+    # before coverage existed) must still mark the occurrence posted.
+    rule = RecurringRule.create!(payee: "School fees", account: @account, kind: "expense",
+                                 amount_cents: 190000, frequency: "monthly", every: 1,
+                                 start_on: Date.new(2026, 1, 15))
+    PayeeRule.create!(pattern: "COUNCIL OF ST AN", recurring_rule: rule)
+    Transaction.create!(account: @account, posted_on: Date.new(2026, 1, 16),
+                        payee: "THE COUNCIL OF ST AN TH SYDNEY", amount_cents: -183450,
+                        learn_rule: false).update_column(:recurring_rule_id, nil)
+    pts = Forecast.new(accounts: [ @account ], rules: [ rule ])
+                  .series(Date.new(2026, 2, 1)..Date.new(2026, 2, 20))[@account]
+    assert_equal(-273450, pts.find { |d, _| d == Date.new(2026, 2, 15) }.last)
   end
 
   test "settle rule pays the target's balance monthly" do

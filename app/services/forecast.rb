@@ -36,10 +36,10 @@ class Forecast
     # :history → no rules; :rules → the full plan; :hybrid → only the
     # rules opted into the hybrid layer.
     @rules = case basis
-             when :history then []
-             when :rules   then rules
-             else rules.select { |r| r.include_in_hybrid? }
-             end
+    when :history then []
+    when :rules   then rules
+    else rules.select { |r| r.include_in_hybrid? }
+    end
     @window_days = window_days
     # Settle rules need the target account projected even when it's
     # outside the scoped view — e.g. a bank→Amex payment in Cash view.
@@ -80,7 +80,7 @@ class Forecast
       primary = @accounts.detect(&:liquid?)&.id
       if primary
         (Account.active - @all_accounts).reject(&:loan?).each do |a|
-          rate = net_drift_for(a, as_of)
+          rate = net_drift_for(a, as_of)  # :history → masked_rule_ids is [], raw drift
           disc[primary] = (disc[primary] || 0) + rate if rate != 0
         end
       end
@@ -185,6 +185,9 @@ class Forecast
       by_day[[ account_id, d ]].any? do |t|
         next true if t[:rule_id] == rule.id
         next false unless (t[:cents] < 0) == want_neg
+        # Covered payees count as posted at any amount — that's the
+        # whole point of coverage: the real charge IS the rule firing.
+        next true if coverage_patterns_for(rule).any? { |pat| t[:key].include?(pat) }
         case rule.kind
         when "settle"   then rkey.present? && t[:key].include?(rkey)
         when "transfer" then t[:cents].abs == rule.amount_cents.abs
@@ -213,12 +216,54 @@ class Forecast
   # the real spend they model — the rule would fire AND the actuals
   # would leak into drift, double-counting the bill.
   def mask_rules_by_account
-    live = case @basis
-           when :history then []
-           when :rules   then RecurringRule.live.active
-           else RecurringRule.live.active.select(&:include_in_hybrid?)
-           end
-    live.group_by(&:account_id)
+    @mask_rules ||= case @basis
+    when :history then []
+    when :rules   then RecurringRule.live.active
+    else RecurringRule.live.active.select(&:include_in_hybrid?)
+    end
+    @mask_rules.group_by(&:account_id)
+  end
+
+  # Txns explicitly linked to a masked rule are explained spend even
+  # when the amount no longer matches (e.g. an adopted scenario bumped
+  # the rule) — keep them out of the drift sample entirely. The SQL
+  # keeps NULL rule_ids: a plain NOT IN would drop every unlinked txn.
+  def masked_rule_ids
+    mask_rules_by_account.values.flatten.map(&:id)
+  end
+
+  def unlinked_condition
+    ids = masked_rule_ids
+    ids.empty? ? nil : "recurring_rule_id IS NULL OR recurring_rule_id NOT IN (#{ids.join(",")})"
+  end
+
+  # Coverage rows pointing at live, active rules — the pool both
+  # coverage_by_account and coverage_patterns_for slice from.
+  def coverage_payee_rules
+    @coverage_payee_rules ||= PayeeRule.where(recurring_rule_id: RecurringRule.live.active.select(:id))
+                                     .includes(:recurring_rule).to_a
+  end
+
+  # [pattern] — payee patterns claimed by masked rules. A covered payee
+  # is explained spend at ANY amount and on ANY account (the rule's
+  # claim is household-level), so these mask like explicitly-linked txns.
+  def coverage_patterns
+    @coverage_patterns ||= begin
+      ids = masked_rule_ids.to_set
+      coverage_payee_rules.select { |pr| ids.include?(pr.recurring_rule_id) }
+                          .map(&:pattern).uniq
+    end
+  end
+
+  # Patterns for one rule — keyed like Scenario#link_key so a scenario
+  # copy inherits its source rule's coverage (unless the scenario
+  # edited the payee, which rightly drops the claim).
+  def coverage_patterns_for(rule)
+    @coverage_by_key ||= coverage_payee_rules.group_by { |pr|
+      [ pr.recurring_rule.account_id, pr.recurring_rule.to_account_id,
+        pr.recurring_rule.kind, PayeeRule.detection_key(pr.recurring_rule.payee) ]
+    }.transform_values { |prs| prs.map(&:pattern) }
+    @coverage_by_key.dig([ rule.account_id, rule.to_account_id, rule.kind, rule_key(rule) ]) || []
   end
 
   # The effective date for a once-rule: nil if it already posted (the
@@ -313,6 +358,7 @@ class Forecast
       next unless window
       h.merge! Transaction.where(account: a, posted_on: window, transfer_pair_id: nil)
                           .where.not(category_id: excluded_cats)
+                          .where(unlinked_condition)
                           .where("amount_cents > 0")
                           .group(:payee, :amount_cents).count
                           .transform_keys { |(payee, cents)| [ a.id, payee, cents ] }
@@ -329,7 +375,8 @@ class Forecast
         next if payee_hits[key] <= 2 && cents > cap
         # Payee-only match for income — wage amounts wobble by cents,
         # an exact-amount check would leak the salary back into drift.
-        matched = rules_by_account.fetch(account_id, []).any? do |r|
+        matched = coverage_patterns.any? { |pat| key.include?(pat) } ||
+          rules_by_account.fetch(account_id, []).any? do |r|
           rkey = PayeeRule.detection_key(r.payee)
           rkey.present? && key.include?(rkey)
         end
@@ -349,6 +396,7 @@ class Forecast
       next unless window
       h.merge! Transaction.where(account: a, posted_on: window, transfer_pair_id: nil)
                           .where.not(category_id: excluded_cats)
+                          .where(unlinked_condition)
                           .where("amount_cents < 0")
                           .group(:category_id, :payee, :amount_cents).count
                           .transform_keys { |(cid, payee, cents)| [ a.id, cid, payee, cents ] }
@@ -365,7 +413,8 @@ class Forecast
       ac.filter_map do |(_, cid, payee, cents), count|
         key = PayeeRule.detection_key(payee)
         next if payee_hits[key] <= 2 && cents.abs > cap
-        matched = rules_by_account.fetch(account_id, []).any? do |r|
+        matched = coverage_patterns.any? { |pat| key.include?(pat) } ||
+          rules_by_account.fetch(account_id, []).any? do |r|
           rkey = PayeeRule.detection_key(r.payee)
           rkey.present? && key.include?(rkey) &&
             (r.settle? || r.amount_cents.abs == cents.abs)

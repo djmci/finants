@@ -23,13 +23,18 @@ Rails.application.routes.draw do
   resources :imports, except: [ :edit, :update ] do
     post :commit, on: :member
   end
-  resources :scenarios, only: [ :create, :destroy ] do
-    member { post :resync }
+  resources :scenarios, only: [ :create, :update, :destroy ] do
+    member do
+      post :resync
+      post :promote
+    end
   end
   resources :recurring_rules, except: [ :new, :edit, :show, :destroy ] do
     member do
       post :archive
       post :unarchive
+      post :link_payee
+      delete :unlink_payee
     end
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

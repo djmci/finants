@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_21_215622) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_03_042924) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -55,15 +55,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_215622) do
 
   create_table "payee_rules", force: :cascade do |t|
     t.string "pattern", null: false
-    t.bigint "category_id", null: false
+    t.bigint "category_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "round_amount"
     t.integer "max_amount_cents"
     t.string "direction"
     t.boolean "auto", default: true, null: false
+    t.bigint "recurring_rule_id"
     t.index ["category_id"], name: "index_payee_rules_on_category_id"
     t.index ["pattern", "round_amount", "max_amount_cents", "direction"], name: "index_payee_rules_on_pattern_and_conditions", unique: true
+    t.index ["recurring_rule_id"], name: "index_payee_rules_on_recurring_rule_id"
   end
 
   create_table "recurring_rules", force: :cascade do |t|
@@ -150,6 +152,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_21_215622) do
   add_foreign_key "imports", "accounts"
   add_foreign_key "imports", "users"
   add_foreign_key "payee_rules", "categories"
+  add_foreign_key "payee_rules", "recurring_rules"
   add_foreign_key "recurring_rules", "accounts"
   add_foreign_key "recurring_rules", "accounts", column: "to_account_id"
   add_foreign_key "recurring_rules", "categories"

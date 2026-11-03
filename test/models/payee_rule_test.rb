@@ -56,6 +56,38 @@ class PayeeRuleTest < ActiveSupport::TestCase
     end
   end
 
+  test "coverage rows answer coverage_for but never categorisation" do
+    rule = recurring_rules(:streaming)
+    PayeeRule.create!(pattern: "NETFLIX", recurring_rule: rule)
+    assert_nil PayeeRule.for("NETFLIX.COM 866-579-1234", amount_cents: -2299)
+    assert_equal rule, PayeeRule.coverage_for("NETFLIX.COM 866-579-1234")
+    assert_nil PayeeRule.coverage_for("SOME RANDOM SHOP")
+  end
+
+  test "coverage rows can also categorise" do
+    rule = recurring_rules(:streaming)
+    PayeeRule.create!(pattern: "NETFLIX", recurring_rule: rule, category: categories(:food))
+    assert_equal categories(:food), PayeeRule.for("NETFLIX.COM 866-579-1234", amount_cents: -2299)
+    assert_equal rule, PayeeRule.coverage_for("NETFLIX.COM 866-579-1234")
+  end
+
+  test "a payee rule needs a category or a forecast rule" do
+    assert_not PayeeRule.new(pattern: "NOTHING").valid?
+  end
+
+  test "coverage_match claims covered payees on any account" do
+    rule = recurring_rules(:streaming) # on amex
+    PayeeRule.create!(pattern: "NETFLIX", recurring_rule: rule)
+    assert_equal rule, RecurringRule.coverage_match(payee: "NETFLIX.COM 866-579-1234")
+    assert_nil RecurringRule.coverage_match(payee: "SOME RANDOM SHOP")
+  end
+
+  test "coverage_match ignores paused and scenario rules" do
+    rule = recurring_rules(:paused)
+    PayeeRule.create!(pattern: "OLD GYM", recurring_rule: rule)
+    assert_nil RecurringRule.coverage_match(payee: "OLD GYM PTY")
+  end
+
   test "categorising a txn learns a rule by default" do
     assert_difference "PayeeRule.count", 1 do
       Transaction.create!(account: accounts(:everyday), posted_on: Date.current,

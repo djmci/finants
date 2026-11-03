@@ -82,9 +82,14 @@ Read `PLAN.md` first — it tracks build phases and open decisions.
   `:history` (raw net rate, not surfaced in UI toggles).
 - Seeds are real balances; settle rules pay `-bal` of the card each
   occurrence and record `settlement_amounts` for display.
-- Drift excludes: transfer pairs, rule-matched payees, one-off-flagged
-  categories (`exclude_from_forecast`), rare-payee outliers, and any
-  positive rows on loans/settle targets (debt plumbing, not income).
+- Drift excludes: transfer pairs, rule-matched payees, covered payees
+  (PayeeRule.recurring_rule_id — pattern claims a payee for a rule at
+  ANY amount), one-off-flagged categories (`exclude_from_forecast`),
+  rare-payee outliers, and any positive rows on loans/settle targets
+  (debt plumbing, not income).
+- Coverage: set from the rule's edit drawer ("Covered payees" → Cover a
+  payee) — links matching txns AND auto-links future imports via
+  suggest_rule. Same-account only, expense/income kinds only.
 - In `:rules` mode settle targets still accrue *real drift* (the
   balance is measured data), but the card's own charge-rule deltas are
   skipped to avoid double-counting.

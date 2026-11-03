@@ -9,7 +9,7 @@ class CategoriesController < ApplicationController
     end
     @edit_category = Category.find_by(id: params[:edit])
     @parents = Category.active.top_level.order(:kind, :name)
-    @payee_rules = PayeeRule.includes(:category).order(:pattern, :id)
+    @payee_rules = PayeeRule.includes(:category, :recurring_rule).where.not(category_id: nil).order(:pattern, :id)
     @edit_rule = PayeeRule.find_by(id: params[:edit_rule])
   end
 

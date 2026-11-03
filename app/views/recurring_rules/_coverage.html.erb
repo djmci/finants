@@ -1,0 +1,45 @@
+<div class="mt-6 pt-4 border-t border-base-300 space-y-3">
+  <div>
+    <h3 class="font-bold text-sm">Covered payees</h3>
+    <p class="text-xs text-base-content/50">Transactions at these payees count as this rule — at any amount — and stay out of everyday-spend history.</p>
+  </div>
+
+  <% if rule.payee_rules.any? %>
+    <ul class="space-y-1">
+      <% rule.payee_rules.order(:pattern).each do |pr| %>
+        <li class="flex items-center justify-between gap-2 text-sm">
+          <span class="font-mono text-xs truncate"><%= pr.pattern %></span>
+          <%= button_to unlink_payee_recurring_rule_path(rule, payee_rule_id: pr.id), method: :delete,
+              class: "btn btn-ghost btn-circle btn-xs text-error", title: "Uncover — matching txns re-enter history",
+              data: { turbo_confirm: "Uncover #{pr.pattern}? Linked transactions go back to everyday spend." } do %>
+            <%= icon "trash", class: "size-3" %>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+    <p class="text-xs text-base-content/50"><%= pluralize(rule.transactions.size, "transaction") %> linked.</p>
+  <% end %>
+
+  <% if @coverage_candidates.any? %>
+    <div data-controller="filter-list" class="space-y-2">
+      <input type="search" placeholder="Search all payees…" class="input input-sm w-full"
+             data-action="input->filter-list#filter" />
+      <% if rule.category %>
+        <p class="text-xs text-base-content/50" data-filter-list-target="hint" hidden>Showing payees already categorised <span class="badge badge-soft badge-xs"><%= rule.category.display_name %></span> — search to see all.</p>
+      <% end %>
+      <ul class="space-y-1">
+        <% @coverage_candidates.each do |key, count, accounts, cat_match| %>
+          <li class="flex items-center justify-between gap-2 text-sm" data-filter-list-target="item"
+              data-key="<%= key %>" data-preferred="<%= cat_match ? 1 : 0 %>">
+            <span class="min-w-0">
+              <span class="font-mono text-xs truncate block"><%= key %></span>
+              <span class="text-xs text-base-content/50"><%= count %>× · <%= accounts %><% if cat_match %> · <span class="badge badge-soft badge-xs"><%= rule.category.display_name %></span><% end %></span>
+            </span>
+            <%= button_to "Cover", link_payee_recurring_rule_path(rule, payee: key), class: "btn btn-primary btn-soft btn-xs shrink-0" %>
+          </li>
+        <% end %>
+      </ul>
+      <p class="text-xs text-base-content/50" data-filter-list-target="empty" hidden>No unlinked payees match.</p>
+    </div>
+  <% end %>
+</div>

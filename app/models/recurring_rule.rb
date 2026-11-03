@@ -8,6 +8,9 @@ class RecurringRule < ApplicationRecord
   belongs_to :category, optional: true
   belongs_to :to_account, class_name: "Account", optional: true
   has_many :transactions, dependent: :nullify
+  # Payee patterns this rule covers: matching txns link here and stay
+  # out of the drift sample whatever their amount.
+  has_many :payee_rules, dependent: :nullify
 
   validates :payee, :frequency, :start_on, presence: true
   validates :kind, inclusion: { in: KINDS }
@@ -57,6 +60,15 @@ class RecurringRule < ApplicationRecord
       rkey.present? && key.include?(rkey) &&
         (r.settle? || r.amount_cents.abs == amount_cents.abs)
     end.max_by { |r| r.payee.length }
+  end
+
+  # Explicit coverage beats amount-matching: a live rule whose PayeeRule
+  # pattern claims this payee explains the txn at any amount — on any
+  # account, coverage is a household-level claim ("school fees" hits
+  # Amex even if the rule sits on savings).
+  def self.coverage_match(payee:)
+    rule = PayeeRule.coverage_for(payee)
+    rule if rule && rule.scenario_id.nil? && rule.active?
   end
 
   def human_schedule
