@@ -11,7 +11,7 @@
     <%= f.label :owner_id, "Owner", class: "label" %>
     <%= f.select :owner_id, options_for_select([ [ "Joint", "" ] ] + User.order(:name).map { |u| [ u.name, u.id ] }, account.owner_id), {}, class: "select w-full" %>
   </div>
-  <div class="grid grid-cols-2 gap-3">
+  <div class="grid grid-cols-3 gap-3">
     <div class="fieldset">
       <%= f.label :currency, class: "label" %>
       <%= f.text_field :currency, value: account.currency.presence || "AUD", class: "input w-full" %>
@@ -20,10 +20,47 @@
       <%= f.label :opening_balance, "Opening balance", class: "label" %>
       <%= f.number_field :opening_balance, step: "0.01", class: "input w-full" %>
     </div>
+    <div class="fieldset">
+      <%= f.label :opened_on, "Opened on", class: "label" %>
+      <%= f.date_field :opened_on, class: "input w-full" %>
+    </div>
   </div>
+  <p class="text-xs text-base-content/50 -mt-2">Opened on: the balance counts from this date — leave blank for accounts that have always existed.</p>
   <div class="fieldset">
     <%= f.label :notes, class: "label" %>
     <%= f.text_area :notes, rows: 2, class: "textarea w-full" %>
   </div>
+  <% if account.persisted? && account.active? %>
+    <div class="border-t border-base-300 pt-3 space-y-3">
+      <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">Close or hand over</p>
+      <div class="fieldset">
+        <%= label_tag :succeeded_by_id, "On save", class: "label" %>
+        <%= select_tag :succeeded_by_id, options_for_select([ [ "Keep open", "" ], [ "Close — no replacement", "close" ] ] + accounts.reject { |a| a.id == account.id }.map { |a| [ "Close — replaced by #{a.name}", a.id ] }), class: "select w-full" %>
+      </div>
+      <div class="fieldset">
+        <%= label_tag :closed_on, "Closed on (optional)", class: "label" %>
+        <%= date_field_tag :closed_on, nil, class: "input w-full" %>
+        <p class="text-xs text-base-content/50 mt-1">Zeroes this account (default: its last transaction), moves its recurring rules to the replacement, then archives it. The old history feeds the new account's forecast.</p>
+      </div>
+    </div>
+  <% elsif account.persisted? %>
+    <div class="border-t border-base-300 pt-3 space-y-3">
+      <p class="text-xs font-semibold uppercase tracking-wide text-base-content/60">Closure</p>
+      <% if account.successors.any? %>
+        <p class="text-xs text-base-content/70">Replaced by <%= account.successors.map(&:name).to_sentence %>.</p>
+      <% end %>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="fieldset">
+          <%= label_tag :closed_on, "Closed on", class: "label" %>
+          <%= date_field_tag :closed_on, account.transactions.where(payee: Account::CLOSURE_PAYEE).maximum(:posted_on), class: "input w-full" %>
+        </div>
+        <div class="fieldset">
+          <%= label_tag :succeeded_by_id, "Hand over to", class: "label" %>
+          <%= select_tag :succeeded_by_id, options_for_select([ [ "—", "" ] ] + accounts.reject { |a| a.id == account.id || account.successors.include?(a) }.map { |a| [ a.name, a.id ] }), class: "select w-full" %>
+        </div>
+      </div>
+      <p class="text-xs text-base-content/50">Re-dating moves the closure adjustment (and the successor's open date back with it). Handing over links the account and moves any rules still on it.</p>
+    </div>
+  <% end %>
   <%= f.submit account.persisted? ? "Save account" : "Add account", class: "btn btn-primary w-full" %>
 <% end %>

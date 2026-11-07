@@ -10,9 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_06_233650) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_07_011634) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "account_predecessors", force: :cascade do |t|
+    t.bigint "account_id", null: false
+    t.bigint "predecessor_id", null: false
+    t.index ["account_id", "predecessor_id"], name: "index_account_predecessors_on_account_id_and_predecessor_id", unique: true
+    t.index ["account_id"], name: "index_account_predecessors_on_account_id"
+    t.index ["predecessor_id"], name: "index_account_predecessors_on_predecessor_id"
+  end
 
   create_table "accounts", force: :cascade do |t|
     t.string "name", null: false
@@ -24,6 +32,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_233650) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.date "opened_on"
     t.index ["owner_id"], name: "index_accounts_on_owner_id"
   end
 
@@ -148,6 +157,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_233650) do
     t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
+  add_foreign_key "account_predecessors", "accounts"
+  add_foreign_key "account_predecessors", "accounts", column: "predecessor_id"
   add_foreign_key "accounts", "users", column: "owner_id"
   add_foreign_key "categories", "categories", column: "parent_id"
   add_foreign_key "imports", "accounts"

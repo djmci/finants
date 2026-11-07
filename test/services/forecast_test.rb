@@ -279,4 +279,48 @@ class ForecastTest < ActiveSupport::TestCase
     assert_equal Date.new(2026, 3, 15), date # third rent lands; floor keeps falling
     assert_equal(-500000, cents)
   end
+
+  test "predecessor history drifts the successor's projection" do
+    old = Account.create!(name: "Old Bank", kind: "everyday", opening_balance_cents: 0)
+    90.times do |i|
+      Transaction.create!(account: old, posted_on: Date.new(2026, 1, 31) - 89 + i,
+                          payee: "SHOP #{i}", amount_cents: -1000)
+    end
+    old.update!(active: false)
+    successor = Account.create!(name: "New Bank", kind: "everyday",
+                                opening_balance_cents: 500000)
+    successor.account_predecessors.create!(predecessor: old)
+    pts = Forecast.new(accounts: [ successor ], rules: [])
+                  .series(Date.new(2026, 2, 1)..Date.new(2026, 2, 10))[successor]
+    # No actuals of its own — the old account's $10/day spend carries
+    # the projection from the successor's own (untouched) balance.
+    assert_equal(-1000, pts.map(&:last).each_cons(2).sum { |a, b| b - a } / (pts.size - 1))
+    assert_equal 495000, pts.find { |d, _| d == Date.new(2026, 2, 1) }.last
+  end
+
+  test "an account contributes nothing before its opened_on" do
+    successor = Account.create!(name: "New Bank", kind: "everyday",
+                                opening_balance_cents: 500000, opened_on: Date.new(2026, 2, 5))
+    rule = RecurringRule.create!(payee: "RENT", account: successor, kind: "expense",
+                                 amount_cents: 100000, frequency: "monthly", every: 1,
+                                 start_on: Date.new(2026, 1, 15))
+    pts = Forecast.new(accounts: [ successor ], rules: [ rule ])
+                  .series(Date.new(2026, 1, 1)..Date.new(2026, 2, 28))[successor]
+    assert_equal 0, pts.find { |d, _| d == Date.new(2026, 1, 15) }.last # rent due pre-open skipped
+    assert_equal 0, pts.find { |d, _| d == Date.new(2026, 2, 4) }.last
+    assert_equal 500000, pts.find { |d, _| d == Date.new(2026, 2, 5) }.last
+    assert_equal 400000, pts.last.last # Feb rent applies after opening
+  end
+
+  test "a pending once-rule lands on opened_on" do
+    successor = Account.create!(name: "New Bank", kind: "everyday",
+                                opening_balance_cents: 500000, opened_on: Date.new(2026, 2, 5))
+    rule = RecurringRule.create!(payee: "GIFT", account: successor, kind: "expense",
+                                 amount_cents: 10000, frequency: "once", every: 1,
+                                 start_on: Date.new(2026, 2, 1))
+    pts = Forecast.new(accounts: [ successor ], rules: [ rule ])
+                  .series(Date.new(2026, 2, 1)..Date.new(2026, 2, 10))[successor]
+    assert_equal 0, pts.find { |d, _| d == Date.new(2026, 2, 4) }.last
+    assert_equal 490000, pts.find { |d, _| d == Date.new(2026, 2, 5) }.last
+  end
 end

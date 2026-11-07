@@ -34,7 +34,7 @@
         <tbody>
           <% @accounts.each do |account| %>
             <tr class="hover:bg-base-200/50">
-              <td><%= link_to account.name, account_path(account), class: "link link-hover font-medium" %><% unless account.active? %> <span class="badge badge-ghost badge-xs">archived</span><% end %></td>
+              <td><%= link_to account.name, account_path(account), class: "link link-hover font-medium" %><% unless account.active? %> <span class="badge badge-ghost badge-xs">archived</span><% end %><% account.successors.each do |s| %> <span class="badge badge-soft badge-xs">→ <%= s.name %></span><% end %></td>
               <td><span class="badge badge-soft badge-xs"><%= account.kind %></span></td>
               <td class="text-base-content/70"><%= account.owner_label %></td>
               <td class="text-right"><%= money account.balance_cents %></td>
@@ -97,7 +97,7 @@
         <h2 class="font-bold text-lg"><%= editing ? "Edit account" : "New account" %></h2>
         <label for="account-drawer" class="btn btn-ghost btn-sm btn-square" aria-label="Close">✕</label>
       </div>
-      <%= render "form", account: @edit_account || Account.new %>
+      <%= render "form", account: @edit_account || Account.new, accounts: Account.active.order(:name) %>
     </div>
   </div>
 </div>

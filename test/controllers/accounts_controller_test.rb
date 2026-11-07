@@ -27,4 +27,28 @@ class AccountsControllerTest < ActionDispatch::IntegrationTest
     post archive_account_url(accounts(:everyday)), headers: { "HTTP_REFERER" => accounts_url }
     assert_not accounts(:everyday).reload.active?
   end
+
+  test "update with a successor hands the account over" do
+    sign_in_as users(:one)
+    successor = accounts(:savings)
+    patch account_url(accounts(:everyday)),
+          params: { account: { name: "Everyday" }, succeeded_by_id: successor.id, closed_on: "2026-11-10" },
+          headers: { "HTTP_REFERER" => accounts_url }
+    old = accounts(:everyday).reload
+    assert_not old.active?
+    assert_equal 0, old.balance_cents(on: Date.new(2026, 11, 10))
+    assert_includes successor.predecessors, old
+    assert_equal successor, recurring_rules(:rent).reload.account
+  end
+
+  test "update with close leaves no successor" do
+    sign_in_as users(:one)
+    patch account_url(accounts(:everyday)),
+          params: { account: { name: "Everyday" }, succeeded_by_id: "close" },
+          headers: { "HTTP_REFERER" => accounts_url }
+    old = accounts(:everyday).reload
+    assert_not old.active?
+    assert_equal 0, old.balance_cents
+    assert_empty AccountPredecessor.where(predecessor: old)
+  end
 end

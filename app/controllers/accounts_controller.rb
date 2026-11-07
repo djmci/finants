@@ -1,7 +1,7 @@
 class AccountsController < ApplicationController
   def index
     @archived = params[:archived].present?
-    @accounts = Account.where(active: !@archived).includes(:owner).order(:name)
+    @accounts = Account.where(active: !@archived).includes(:owner, :successors).order(:name)
     @edit_account = Account.find_by(id: params[:edit])
     @members = User.order(:name)
 
@@ -11,7 +11,7 @@ class AccountsController < ApplicationController
       Transaction.where("posted_on <= ?", d).group(:account_id).sum(:amount_cents)
     end
     @balance_history = @accounts.to_h do |a|
-      [ a.id, @history_dates.map { |d| a.opening_balance_cents + sums[d].fetch(a.id, 0) } ]
+      [ a.id, @history_dates.map { |d| d < (a.opened_on || Date.new(1)) ? 0 : a.opening_balance_cents + sums[d].fetch(a.id, 0) } ]
     end
   end
 
@@ -42,10 +42,31 @@ class AccountsController < ApplicationController
 
   def update
     account = Account.find(params[:id])
-    if account.update(account_params)
-      redirect_back_to_page accounts_path, notice: "Account saved."
+    unless account.update(account_params)
+      return redirect_back_to_page accounts_path(edit: account.id), alert: account.errors.full_messages.to_sentence
+    end
+    on = params[:closed_on].presence&.to_date
+    successor = Account.active.where.not(id: account.id).find_by(id: params[:succeeded_by_id])
+    if account.active?
+      if params[:succeeded_by_id] == "close"
+        account.handover_to!(nil, on:)
+        redirect_back_to_page accounts_path, notice: "Account closed out."
+      elsif successor && !account.successors.include?(successor)
+        account.handover_to!(successor, on:)
+        redirect_back_to_page accounts_path, notice: "Closed and handed over to #{successor.name}."
+      else
+        redirect_back_to_page accounts_path, notice: "Account saved."
+      end
     else
-      redirect_back_to_page accounts_path(edit: account.id), alert: account.errors.full_messages.to_sentence
+      # Archived: revisit the closure — re-date it, or attach a
+      # successor the original handover missed.
+      account.redate_closure!(on) if on
+      if successor && !account.successors.include?(successor)
+        account.link_successor!(successor)
+        redirect_back_to_page accounts_path, notice: "Handed over to #{successor.name}."
+      else
+        redirect_back_to_page accounts_path, notice: "Closure details saved."
+      end
     end
   end
 
@@ -62,6 +83,6 @@ class AccountsController < ApplicationController
   private
 
   def account_params
-    params.require(:account).permit(:name, :kind, :currency, :owner_id, :opening_balance, :notes)
+    params.require(:account).permit(:name, :kind, :currency, :owner_id, :opening_balance, :opened_on, :notes)
   end
 end

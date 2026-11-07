@@ -91,6 +91,14 @@ class Forecast
     points = @all_accounts.index_with { |a| [] }
     walk.each do |d|
       @all_accounts.each do |a|
+        # Not open yet — contributes nothing; at opened_on the balance
+        # starts from the true opening figure, not accumulated history.
+        if a.opened_on && d < a.opened_on
+          bal[a.id] = 0
+          next
+        elsif a.opened_on && d == a.opened_on
+          bal[a.id] = a.opening_balance_cents
+        end
         bal[a.id] += actual[[ a.id, d ]]
         bal[a.id] += (disc[a.id] || 0) if d > (as_of[a.id] || epoch)
       end
@@ -110,7 +118,9 @@ class Forecast
         bal[rule.account_id] -= amt
         # The card side gets its projected credit only past its own
         # data — covered actuals decide whether it really landed.
-        bal[rule.to_account_id] += amt if d > (as_of[rule.to_account_id] || epoch)
+        target_open = opened_on_for(rule.to_account_id)
+        bal[rule.to_account_id] += amt if d > (as_of[rule.to_account_id] || epoch) &&
+                                          !(target_open && d < target_open)
       end
       @all_accounts.each { |a| points[a] << [ d, bal[a.id] ] }
     end
@@ -148,9 +158,10 @@ class Forecast
 
   # {account_id => Date} — the last day each account's actuals cover,
   # capped at the projection start (a stray future-dated txn doesn't
-  # mean the feed runs that far).
+  # mean the feed runs that far). Predecessor edges are loaded too —
+  # a replaced account's drift window ends where the OLD feed did.
   def data_as_of(upto)
-    Transaction.where(account: @all_accounts)
+    Transaction.where(account_id: @all_accounts.flat_map(&:source_ids))
                .where("posted_on <= ?", upto)
                .group(:account_id).maximum(:posted_on)
   end
@@ -200,8 +211,11 @@ class Forecast
   # Should this occurrence's leg apply on day `on` for `account_id`?
   # Past the data edge always; in the lag window only if it hasn't
   # really posted; deep inside covered actuals never — the data is
-  # the truth about what happened.
+  # the truth about what happened. Never before the account opened:
+  # the predecessor's actuals already recorded that spend.
   def leg_live?(rule, on, account_id, direction, as_of, by_day)
+    opened = opened_on_for(account_id)
+    return false if opened && on < opened
     cutoff = as_of[account_id]
     return true unless cutoff
     return true if on > cutoff
@@ -275,7 +289,15 @@ class Forecast
     # Ancient-overdue lands the day the data ends; a pending-zone or
     # future due date keeps its date, like a recurring occurrence.
     on = cutoff && rule.start_on <= cutoff - PENDING_DAYS ? cutoff + 1 : rule.start_on
+    # A pending once-rule can't land before its account exists — it
+    # waits for the successor's opening day instead of evaporating.
+    on = [ on, opened_on_for(rule.account_id) ].compact.max
     on unless rule.end_on && on > rule.end_on
+  end
+
+  # {account_id => Date|nil} — when each walked account opened.
+  def opened_on_for(account_id)
+    (@opened_ons ||= @all_accounts.to_h { |a| [ a.id, a.opened_on ] })[account_id]
   end
 
   # {date => [{rule:, on:}]} — non-settle occurrences over the walk.
@@ -318,9 +340,11 @@ class Forecast
 
   # Trailing window of real data for drift measurement — ends where
   # the account's actuals do, not at the projection start, so a stale
-  # feed doesn't dilute the daily rate with empty days.
+  # feed doesn't dilute the daily rate with empty days. A replaced
+  # account's window can end at its predecessor's edge — the old
+  # account's txns ARE the spend sample until the new feed fills in.
   def drift_window(account, as_of)
-    upto = as_of[account.id]
+    upto = account.source_ids.filter_map { |id| as_of[id] }.max
     upto && ((upto - @window_days + 1)..upto)
   end
 
@@ -339,7 +363,7 @@ class Forecast
     window = drift_window(account, as_of)
     return 0 unless window
     excluded_cats = Category.where(exclude_from_forecast: true).pluck(:id)
-    Transaction.where(account:, posted_on: window, transfer_pair_id: nil)
+    Transaction.where(account_id: account.source_ids, posted_on: window, transfer_pair_id: nil)
                .where.not(category_id: excluded_cats)
                .sum(:amount_cents) / @window_days
   end
@@ -356,7 +380,7 @@ class Forecast
                           .each_with_object({}) do |a, h|
       window = drift_window(a, as_of)
       next unless window
-      h.merge! Transaction.where(account: a, posted_on: window, transfer_pair_id: nil)
+      h.merge! Transaction.where(account_id: a.source_ids, posted_on: window, transfer_pair_id: nil)
                           .where.not(category_id: excluded_cats)
                           .where(unlinked_condition)
                           .where("amount_cents > 0")
@@ -394,7 +418,7 @@ class Forecast
     combos = @all_accounts.each_with_object({}) do |a, h|
       window = drift_window(a, as_of)
       next unless window
-      h.merge! Transaction.where(account: a, posted_on: window, transfer_pair_id: nil)
+      h.merge! Transaction.where(account_id: a.source_ids, posted_on: window, transfer_pair_id: nil)
                           .where.not(category_id: excluded_cats)
                           .where(unlinked_condition)
                           .where("amount_cents < 0")

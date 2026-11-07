@@ -54,7 +54,8 @@ class RecurringSuggestions
   # account's (repayments) or debt accrual (interest) — not cashflow.
   def transaction_groups
     Transaction.excluding_transfers.where.not(payee: [ nil, "" ])
-               .joins(:account).where.not(accounts: { kind: "loan" })
+               .joins(:account).where(accounts: { active: true })
+               .where.not(accounts: { kind: "loan" })
                .includes(:account)
                .group_by { |t| [ t.account_id, PayeeRule.detection_key(t.payee) ] }
   end
