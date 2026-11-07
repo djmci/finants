@@ -20,19 +20,24 @@ class DashboardController < ApplicationController
     rules = RecurringRule.live.active.includes(:account, :category, :to_account)
 
     @months = (params[:months].presence || 6).to_i.clamp(1, 36)
-    @basis = %w[hybrid rules history].include?(params[:basis]) ? params[:basis].to_sym : :hybrid
+    # Custom range overrides the preset horizon: today (or `from`) → `to`.
+    @from = (Date.parse(params[:from].to_s) rescue nil)
+    @to = (Date.parse(params[:to].to_s) rescue nil)
+    @end_date = @to || Date.current + @months.months
     @scoped_account = @accounts.detect { |a| a.id.to_s == params[:account] }
     scope = @scoped_account ? [ @scoped_account ] : @liquid
-    # Tracked averages a full year of history — a 90-day window is too
-    # easily skewed by one-off-heavy quarters (e.g. the Mexico trip).
-    forecast = Forecast.new(accounts: scope, rules: rules, basis: @basis,
-                          window_days: @basis == :history ? 365 : 90)
-    full = forecast.combined(Date.current..(Date.current + [ @months, 12 ].max.months))
+    forecast = Forecast.new(accounts: scope, rules: rules, basis: :hybrid, window_days: 90)
+    full = forecast.combined(Date.current..[ @end_date, Date.current + 12.months ].max)
     @settle_amounts = forecast.settlement_amounts || {}
-    @history = balance_history(scope)
+    # Archived accounts stay in the history — a replaced account's real
+    # balance is still what the household held before the handover.
+    @history = balance_history(@scoped_account ? scope : Account.where(kind: Account::LIQUID))
+    @history = @history.select { |d, _| (!@from || d >= @from) && d <= @end_date }
     # The projection can start before today — it peels off the actuals
     # where the last import ran out. Clamp it to the chart window.
-    @projection = full.select { |d, _| d >= @history.first.first && d <= Date.current + @months.months }
+    floor_d = @history.first&.first || @from || Date.new(1)
+    @projection = full.select { |d, _| d >= floor_d && d <= @end_date }
+    @projection = @projection.select { |d, _| d >= @from } if @from
     fwd = @projection.select { |d, _| d >= Date.current }
 
     # Scenario overlay — a second dashed line from the copied rule set.
@@ -40,9 +45,10 @@ class DashboardController < ApplicationController
     @scenario = @scenarios.detect { |s| s.id.to_s == params[:scenario] }
     if @scenario
       srules = @scenario.recurring_rules.active.includes(:account, :category, :to_account)
-      @scenario_projection = Forecast.new(accounts: scope, rules: srules, basis: @basis)
-                                     .combined(Date.current..(Date.current + @months.months))
-                                     .select { |d, _| d >= @history.first.first }
+      @scenario_projection = Forecast.new(accounts: scope, rules: srules, basis: :hybrid, window_days: 90)
+                                     .combined(Date.current..@end_date)
+                                     .select { |d, _| d >= floor_d }
+      @scenario_projection = @scenario_projection.select { |d, _| d >= @from } if @from
     end
     @floor = fwd.min_by(&:last)
     @net_flow = ongoing_rate(fwd)
@@ -76,8 +82,7 @@ class DashboardController < ApplicationController
     # Health + alerts always track the liquid cash position, whatever
     # scope the chart is showing — a card/loan balance is negative by
     # nature, not a breach.
-    cash = Forecast.new(accounts: @liquid, rules: rules, basis: @basis,
-                        window_days: @basis == :history ? 365 : 90)
+    cash = Forecast.new(accounts: @liquid, rules: rules, basis: :hybrid, window_days: 90)
                    .combined(Date.current..(Date.current + 12.months))
                    .select { |d, _| d >= Date.current }
     @cash_now = cash.first.last
@@ -115,13 +120,21 @@ class DashboardController < ApplicationController
   end
 
   # Actual combined daily balance for the trailing HISTORY_DAYS.
+  # Per-account so opened_on works — an account contributes nothing
+  # until it exists, then its opening balance starts counting.
   def balance_history(accounts)
     range = (Date.current - HISTORY_DAYS.days)..Date.current
-    sums = Transaction.where(account: accounts, posted_on: range)
-                      .group(:posted_on).sum(:amount_cents)
-    seed = accounts.sum(&:opening_balance_cents) +
-           Transaction.where(account: accounts).where("posted_on < ?", range.begin).sum(:amount_cents)
-    bal = seed
-    range.map { |d| bal += sums[d] || 0; [ d, bal ] }
+    daily = Transaction.where(account: accounts, posted_on: range)
+                       .group(:account_id, :posted_on).sum(:amount_cents)
+    pre = Transaction.where(account: accounts).where("posted_on < ?", range.begin)
+                     .group(:account_id).sum(:amount_cents)
+    series = accounts.map do |a|
+      bal = a.opening_balance_cents + pre.fetch(a.id, 0)
+      range.map do |d|
+        bal += daily[[ a.id, d ]] || 0
+        [ d, a.opened_on && d < a.opened_on ? 0 : bal ]
+      end
+    end
+    range.map { |d| [ d, series.sum { |pts| pts.assoc(d).last } ] }
   end
 end

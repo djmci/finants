@@ -7,8 +7,10 @@
   pad_l, pad_r, pad_t, pad_b = 56, 12, 14, 24
   comparison = local_assigns[:comparison]
   values = history.map(&:last) + projection.map(&:last) + (comparison&.map(&:last) || [])
-  max_v = (values.max || 0).then { |v| v.positive? ? v : 0 }
-  min_v = (values.min || 0).then { |v| v.negative? ? v : 0 }
+  # Y axis hugs the data — the lowest balance in view is the floor,
+  # so zoomed ranges aren't flattened against a zero baseline.
+  max_v = values.max || 0
+  min_v = values.min || 0
   span_v = [ max_v - min_v, 1 ].max
   max_v += span_v * 0.06; min_v -= span_v * 0.06
   span_v = max_v - min_v

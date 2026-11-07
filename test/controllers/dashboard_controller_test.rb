@@ -28,6 +28,23 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "EQUITY", response.body
   end
 
+  test "custom range clips history and projection to from/to" do
+    sign_in_as users(:one)
+    get root_url(from: (Date.current - 10.days).to_s, to: (Date.current + 20.days).to_s)
+    assert_response :success
+    # The chart's axis endpoints are the requested window, not the
+    # default 90-day history + 6-month horizon.
+    assert_match (Date.current - 10.days).strftime("%-d %b %y").upcase, response.body
+    assert_match (Date.current + 20.days).strftime("%-d %b %y").upcase, response.body
+    assert_no_match (Date.current - 90.days).strftime("%-d %b %y").upcase, response.body
+  end
+
+  test "a from date after today empties history without error" do
+    sign_in_as users(:one)
+    get root_url(from: (Date.current + 8.days).to_s, to: (Date.current + 3.months).to_s)
+    assert_response :success
+  end
+
   test "index scopes to any single account" do
     sign_in_as users(:one)
     get root_url(account: accounts(:everyday).id)

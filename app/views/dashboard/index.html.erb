@@ -83,7 +83,6 @@
         <div class="flex items-center gap-1">
           <%= form_with url: root_path, method: :get, local: true, class: "flex items-center gap-1" do %>
             <%= hidden_field_tag :months, @months %>
-            <%= hidden_field_tag :basis, @basis %>
             <%= select_tag :account, options_for_select(
                   [ [ "Cashflow", "" ] ] + @accounts.map { |a| [ a.name, a.id ] },
                   params[:account]),
@@ -92,7 +91,6 @@
           <% if @scenarios.any? %>
             <%= form_with url: root_path, method: :get, class: "flex items-center" do %>
               <%= hidden_field_tag :months, @months %>
-              <%= hidden_field_tag :basis, @basis %>
               <%= hidden_field_tag :account, params[:account] %>
               <%= select_tag :scenario, options_for_select(
                     [ [ "No scenario", "" ] ] + @scenarios.map { |s| [ "vs #{s.name}", s.id ] },
@@ -101,17 +99,18 @@
             <% end %>
           <% end %>
           <div class="join">
-            <% { rules: "Best case", hybrid: "Most likely" }.each do |b, label| %>
-              <%= link_to label, root_path(basis: b, months: @months, account: params[:account], scenario: params[:scenario]),
-                  class: "join-item btn btn-sm #{@basis == b ? "btn-brand" : ""}", title: { rules: "Only the items in your Forecast list", hybrid: "Your list, plus real-life spend it doesn't cover" }[b] %>
-            <% end %>
-          </div>
-          <div class="join">
             <% [ 3, 6, 12, 36 ].each do |m| %>
-              <%= link_to (m > 12 ? "#{m / 12}yr" : "#{m}mo"), root_path(months: m, account: params[:account], basis: @basis, scenario: params[:scenario]),
-                  class: "join-item btn btn-sm #{@months == m ? "btn-brand" : ""}" %>
+              <%= link_to (m > 12 ? "#{m / 12}yr" : "#{m}mo"), root_path(months: m, account: params[:account], scenario: params[:scenario]),
+                  class: "join-item btn btn-sm #{@months == m && @to.nil? ? "btn-brand" : ""}" %>
             <% end %>
           </div>
+          <%= form_with url: root_path, method: :get, class: "flex items-center gap-1" do %>
+            <%= hidden_field_tag :account, params[:account] %>
+            <%= hidden_field_tag :scenario, params[:scenario] %>
+            <%= date_field_tag :from, @from, class: "input input-sm w-32", title: "From (optional — default: start of history)" %>
+            <%= date_field_tag :to, @to || @end_date, class: "input input-sm w-32", title: "To" %>
+            <%= submit_tag "Go", class: "btn btn-sm" %>
+          <% end %>
         </div>
       </div>
       <%= render "balance_chart", history: @history, projection: @projection, comparison: @scenario_projection %>
@@ -140,9 +139,9 @@
         <%= link_to "Recurring rules", recurring_rules_path, class: "link link-hover text-xs" %>
       </div>
         <div class="flex items-center justify-between px-4 py-2 border-b border-base-300">
-          <%= link_to "← #{(@cal_month - 1.month).strftime("%b")}", root_path(basis: @basis, months: @months, account: params[:account], cal_month: (@cal_month - 1.month).strftime("%Y-%m")), class: "btn btn-ghost btn-xs" %>
+          <%= link_to "← #{(@cal_month - 1.month).strftime("%b")}", root_path(months: @months, account: params[:account], cal_month: (@cal_month - 1.month).strftime("%Y-%m")), class: "btn btn-ghost btn-xs" %>
           <h2 class="font-semibold text-sm"><%= @cal_month.strftime("%B %Y") %></h2>
-          <%= link_to "#{(@cal_month + 1.month).strftime("%b")} →", root_path(basis: @basis, months: @months, account: params[:account], cal_month: (@cal_month + 1.month).strftime("%Y-%m")), class: "btn btn-ghost btn-xs" %>
+          <%= link_to "#{(@cal_month + 1.month).strftime("%b")} →", root_path(months: @months, account: params[:account], cal_month: (@cal_month + 1.month).strftime("%Y-%m")), class: "btn btn-ghost btn-xs" %>
         </div>
         <div class="overflow-x-auto">
         <div class="grid grid-cols-7 text-center text-xs text-base-content/50 border-b border-base-300 min-w-[640px]">
