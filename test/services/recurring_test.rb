@@ -37,6 +37,20 @@ class RecurringTest < ActiveSupport::TestCase
     assert_equal [ Date.new(2026, 10, 5), Date.new(2026, 10, 12) ], dates
   end
 
+  test "max_per_year caps fires per calendar year" do
+    rule = RecurringRule.new(frequency: "monthly", every: 1, start_on: Date.new(2026, 2, 10), max_per_year: 10)
+    dates = Recurring.occurrences(rule, Date.new(2026, 1, 1)..Date.new(2027, 12, 31))
+    assert_equal 10, dates.count { |d| d.year == 2026 } # Feb–Nov, Dec skipped
+    assert_equal 10, dates.count { |d| d.year == 2027 } # Jan–Oct
+  end
+
+  test "max_per_year counts fires before the range" do
+    rule = RecurringRule.new(frequency: "monthly", every: 1, start_on: Date.new(2026, 1, 10), max_per_year: 10)
+    dates = Recurring.occurrences(rule, Date.new(2026, 6, 1)..Date.new(2026, 12, 31))
+    # Jan–May already fired — only Jun–Oct remain this year.
+    assert_equal [ 10, 10, 10, 10, 10 ].each_with_index.map { |_, i| Date.new(2026, 6 + i, 10) }, dates
+  end
+
   test "once fires a single time at start_on" do
     rule = RecurringRule.new(frequency: "once", every: 1, start_on: Date.new(2026, 11, 20))
     assert_equal [ Date.new(2026, 11, 20) ], Recurring.occurrences(rule, Date.new(2026, 10, 1)..Date.new(2026, 12, 31))

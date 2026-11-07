@@ -128,7 +128,7 @@ class RecurringRulesController < ApplicationController
 
   def rule_params
     params.require(:recurring_rule).permit(:payee, :account_id, :category_id,
-      :to_account_id, :kind, :amount, :frequency, :every, :start_on, :end_on, :include_in_hybrid, :scenario_id)
+      :to_account_id, :kind, :amount, :frequency, :every, :max_per_year, :start_on, :end_on, :include_in_hybrid, :scenario_id)
   end
 
   def prefill_params

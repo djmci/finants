@@ -17,12 +17,14 @@ class Recurring
     return [] if first > last
     advance = advance_for(rule)
     dates = []
+    # max_per_year caps fires per calendar year — fires before `first`
+    # still count, since those payments already happened this year.
+    per_year = Hash.new(0)
     d = rule.start_on
-    dates << d if d >= first
-    loop do
+    while d <= last
+      per_year[d.year] += 1
+      dates << d if d >= first && (rule.max_per_year.nil? || per_year[d.year] <= rule.max_per_year)
       d = advance.call(d)
-      break if d > last
-      dates << d if d >= first
     end
     dates
   end

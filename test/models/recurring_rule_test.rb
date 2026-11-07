@@ -29,6 +29,15 @@ class RecurringRuleTest < ActiveSupport::TestCase
     assert_equal 300000, rule.signed_amount_cents
   end
 
+  test "monthly_cents applies the per-year cap" do
+    rule = RecurringRule.new(frequency: "monthly", every: 1, amount_cents: 12000, max_per_year: 10)
+    assert_in_delta 10000, rule.monthly_cents
+    rule.max_per_year = nil
+    assert_in_delta 12000, rule.monthly_cents
+    rule.max_per_year = 20 # cap above the natural rate is a no-op
+    assert_in_delta 12000, rule.monthly_cents
+  end
+
   test "transaction auto-links to matching rule" do
     txn = Transaction.create!(account: accounts(:everyday), posted_on: Date.current,
                               payee: "LANDLORD RENT P/L", amount_cents: -200000)

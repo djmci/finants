@@ -28,7 +28,7 @@
     <%= f.collection_select :category_id, categories, :id, :display_name, { include_blank: "Uncategorised" }, class: "select w-full" %>
     <%= render "categories/new_link", select_id: "recurring_rule_category_id" %>
   </div>
-  <div class="grid grid-cols-2 gap-3">
+  <div class="grid grid-cols-3 gap-3">
     <div class="fieldset">
       <%= f.label :frequency, class: "label" %>
       <%= f.select :frequency, RecurringRule::FREQUENCIES.map { |fr| [ fr.humanize, fr ] }, {}, class: "select w-full" %>
@@ -37,7 +37,12 @@
       <%= f.label :every, "Every N", class: "label" %>
       <%= f.number_field :every, min: 1, value: rule.every || 1, class: "input w-full" %>
     </div>
+    <div class="fieldset">
+      <%= f.label :max_per_year, "Max per yr", class: "label" %>
+      <%= f.number_field :max_per_year, min: 1, class: "input w-full", placeholder: "—" %>
+    </div>
   </div>
+  <p class="text-xs text-base-content/50 -mt-2">Max per yr caps fires in a calendar year — e.g. monthly + 10 for school fees billed Feb–Nov.</p>
   <div class="grid grid-cols-2 gap-3">
     <div class="fieldset">
       <%= f.label :start_on, "First on", class: "label" %>

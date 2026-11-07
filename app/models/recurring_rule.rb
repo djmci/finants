@@ -16,6 +16,7 @@ class RecurringRule < ApplicationRecord
   validates :kind, inclusion: { in: KINDS }
   validates :frequency, inclusion: { in: FREQUENCIES }
   validates :every, numericality: { only_integer: true, greater_than: 0 }
+  validates :max_per_year, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
   validates :amount_cents, presence: true, numericality: { other_than: 0 }, unless: :settle?
   validates :to_account, presence: true, if: -> { kind == "transfer" || kind == "settle" }
   validate :transfer_accounts_differ, if: -> { kind == "transfer" || kind == "settle" }
@@ -40,13 +41,20 @@ class RecurringRule < ApplicationRecord
   # Amount normalized to a monthly rate (cents). Once-rules and settles
   # have no monthly rate — settles estimate from matched actuals.
   def monthly_cents
-    case frequency
-    when "weekly"      then amount_cents * 52.0 / 12
-    when "fortnightly" then amount_cents * 26.0 / 12
-    when "monthly"     then amount_cents / every
-    when "yearly"      then amount_cents / 12.0
+    amount_cents * fires_per_year / 12.0
+  end
+
+  # Fires in a full year of the schedule, capped by max_per_year — a
+  # monthly rule capped at 10 still nets 10 fires a year.
+  def fires_per_year
+    natural = case frequency
+    when "weekly"      then 52.0 / every
+    when "fortnightly" then 26.0 / every
+    when "monthly"     then 12.0 / every
+    when "yearly"      then 1.0
     else 0
     end
+    max_per_year ? [ natural, max_per_year ].min : natural
   end
 
   # Matches a real transaction: same account, rule's ref-stripped payee
@@ -77,12 +85,14 @@ class RecurringRule < ApplicationRecord
       "once — around #{start_on.strftime("%-d %b %y")}"
     end
     count = every > 1 ? "every #{every} " : "every "
-    case frequency
+    schedule = case frequency
     when "weekly" then "#{count}week#{"s" if every > 1}, #{start_on.strftime("%A")}s"
     when "fortnightly" then "#{count}fortnight#{"s" if every > 1}, #{start_on.strftime("%A")}s"
     when "monthly" then "#{count}month#{"s" if every > 1}, the #{start_on.day.ordinalize}"
     when "yearly" then "yearly, #{start_on.strftime("%-d %b")}"
     end
+    schedule += " · max #{max_per_year}/yr" if max_per_year
+    schedule
   end
 
   private
