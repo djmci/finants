@@ -31,13 +31,18 @@ class DashboardController < ApplicationController
     @settle_amounts = forecast.settlement_amounts || {}
     # Archived accounts stay in the history — a replaced account's real
     # balance is still what the household held before the handover.
-    @history = balance_history(@scoped_account ? scope : Account.where(kind: Account::LIQUID))
+    # `from` stretches the window: a custom range can reach back past
+    # the default 90 days.
+    @history = balance_history(@scoped_account ? scope : Account.where(kind: Account::LIQUID), since: @from)
     @history = @history.select { |d, _| (!@from || d >= @from) && d <= @end_date }
     # The projection can start before today — it peels off the actuals
     # where the last import ran out. Clamp it to the chart window.
     floor_d = @history.first&.first || @from || Date.new(1)
     @projection = full.select { |d, _| d >= floor_d && d <= @end_date }
     @projection = @projection.select { |d, _| d >= @from } if @from
+    # The lag-window walk still prices pending items into the balance —
+    # the line just isn't drawn back into the past.
+    @projection = @projection.select { |d, _| d >= Date.current }
     fwd = @projection.select { |d, _| d >= Date.current }
 
     # Scenario overlay — a second dashed line from the copied rule set.
@@ -49,9 +54,12 @@ class DashboardController < ApplicationController
                                      .combined(Date.current..@end_date)
                                      .select { |d, _| d >= floor_d }
       @scenario_projection = @scenario_projection.select { |d, _| d >= @from } if @from
+      @scenario_projection = @scenario_projection.select { |d, _| d >= Date.current }
     end
-    @floor = fwd.min_by(&:last)
-    @net_flow = ongoing_rate(fwd)
+    # Stats track whatever the window shows — projected forward, or the
+    # real history when the range is entirely in the past.
+    @floor = (fwd.presence || @history).min_by(&:last)
+    @net_flow = ongoing_rate(fwd.presence || @history)
     @drift_categories = forecast.discretionary_breakdown(Date.current..(Date.current + 1.day))
 
     # Calendar — rule occurrences plus a weekly projected-spend line on
@@ -119,11 +127,14 @@ class DashboardController < ApplicationController
       delta: window.last.last - points.first.last }
   end
 
-  # Actual combined daily balance for the trailing HISTORY_DAYS.
-  # Per-account so opened_on works — an account contributes nothing
-  # until it exists, then its opening balance starts counting.
-  def balance_history(accounts)
-    range = (Date.current - HISTORY_DAYS.days)..Date.current
+  # Actual combined daily balance for the trailing window (90 days, or
+  # back to `since` when a custom range reaches further). Per-account
+  # so opened_on works — an account contributes nothing until it
+  # exists, then its opening balance starts counting.
+  def balance_history(accounts, since: nil)
+    start = Date.current - HISTORY_DAYS.days
+    start = since if since && since < start
+    range = start..Date.current
     daily = Transaction.where(account: accounts, posted_on: range)
                        .group(:account_id, :posted_on).sum(:amount_cents)
     pre = Transaction.where(account: accounts).where("posted_on < ?", range.begin)

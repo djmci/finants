@@ -15,7 +15,7 @@
   max_v += span_v * 0.06; min_v -= span_v * 0.06
   span_v = max_v - min_v
   min_d = [ history.first&.first, projection.first&.first ].compact.min || Date.current
-  max_d = (projection.last&.first || Date.current)
+  max_d = [ projection.last&.first, history.last&.first ].compact.max || Date.current
   span_d = [ max_d - min_d, 1 ].max
   x = ->(d) { pad_l + (d - min_d).to_f / span_d * (w - pad_l - pad_r) }
   y = ->(v) { h - pad_b - (v - min_v) / span_v * (h - pad_t - pad_b) }

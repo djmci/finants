@@ -39,6 +39,15 @@ class DashboardControllerTest < ActionDispatch::IntegrationTest
     assert_no_match (Date.current - 90.days).strftime("%-d %b %y").upcase, response.body
   end
 
+  test "a range entirely in the past still shows history" do
+    sign_in_as users(:one)
+    get root_url(from: (Date.current - 120.days).to_s, to: (Date.current - 60.days).to_s)
+    assert_response :success
+    # min_d axis label is the `from` date — the window reaches back
+    # past the default 90-day history.
+    assert_match (Date.current - 120.days).strftime("%-d %b %y").upcase, response.body
+  end
+
   test "a from date after today empties history without error" do
     sign_in_as users(:one)
     get root_url(from: (Date.current + 8.days).to_s, to: (Date.current + 3.months).to_s)

@@ -91,16 +91,13 @@ class Forecast
     points = @all_accounts.index_with { |a| [] }
     walk.each do |d|
       @all_accounts.each do |a|
-        # Not open yet — contributes nothing; at opened_on the balance
-        # starts from the true opening figure, not accumulated history.
-        if a.opened_on && d < a.opened_on
-          bal[a.id] = 0
-          next
-        elsif a.opened_on && d == a.opened_on
-          bal[a.id] = a.opening_balance_cents
-        end
+        # Real txns accumulate even pre-open — the ledger already knows
+        # them (e.g. an import reconciled opening to 0 and put the
+        # balance in txns). Only modelled spend and the recorded
+        # series respect opened_on.
         bal[a.id] += actual[[ a.id, d ]]
-        bal[a.id] += (disc[a.id] || 0) if d > (as_of[a.id] || epoch)
+        bal[a.id] += (disc[a.id] || 0) if d > (as_of[a.id] || epoch) &&
+                                          !(a.opened_on && d < a.opened_on)
       end
       (by_day[d] || []).each do |o|
         rule = o[:rule]
@@ -122,7 +119,9 @@ class Forecast
         bal[rule.to_account_id] += amt if d > (as_of[rule.to_account_id] || epoch) &&
                                           !(target_open && d < target_open)
       end
-      @all_accounts.each { |a| points[a] << [ d, bal[a.id] ] }
+      @all_accounts.each do |a|
+        points[a] << [ d, (a.opened_on && d < a.opened_on) ? 0 : bal[a.id] ]
+      end
     end
     @accounts.to_h { |a| [ a, points[a] ] }
   end

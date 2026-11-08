@@ -115,7 +115,8 @@
       </div>
       <%= render "balance_chart", history: @history, projection: @projection, comparison: @scenario_projection %>
       <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-        <span class="text-base-content/70">Projected <%= @projection.last&.first&.strftime("%-d %b %Y") %>: <strong><%= signed_money(@projection.last&.last || 0) %></strong></span>
+        <% end_pts = @projection.presence || @history %>
+        <span class="text-base-content/70"><%= @projection.any? ? "Projected" : "Balance" %> <%= end_pts.last&.first&.strftime("%-d %b %Y") %>: <strong><%= signed_money(end_pts.last&.last || 0) %></strong></span>
         <span class="text-base-content/70">Lowest point: <strong class="<%= "text-error" if @floor && @floor.last.negative? %>"><%= signed_money(@floor&.last || 0) %></strong> on <%= @floor&.first&.strftime("%-d %b %Y") %></span>
         <% if @scenario_projection %>
           <span class="text-base-content/70"><span class="text-warning">◆</span> <%= @scenario.name %>: <strong><%= signed_money(@scenario_projection.last&.last || 0) %></strong></span>
