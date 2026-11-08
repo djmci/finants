@@ -10,7 +10,7 @@
       <%= form_with url: imports_path, method: :post, multipart: true, class: "space-y-4" do |f| %>
         <div class="fieldset">
           <%= f.label :account_id, "Account", class: "label" %>
-          <%= f.collection_select :account_id, @accounts, :id, :name, { prompt: "Which account is this for?" }, required: true, class: "select w-full" %>
+          <%= f.collection_select :account_id, @accounts, :id, ->(a) { a.active? ? a.name : "#{a.name} (archived)" }, { prompt: "Which account is this for?" }, required: true, class: "select w-full" %>
         </div>
         <div class="fieldset">
           <%= f.label :file, "CSV or Excel file", class: "label" %>

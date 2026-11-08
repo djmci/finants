@@ -4,7 +4,7 @@ class ImportsController < ApplicationController
   end
 
   def new
-    @accounts = Account.active.order(:name)
+    @accounts = Account.order(:name)
   end
 
   def create
